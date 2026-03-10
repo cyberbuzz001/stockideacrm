@@ -1,0 +1,76 @@
+/* Custom Styling for StockIdea CRM */
+
+/* Global Colors & Rounded Corners */
+:root {
+    --stockidea-primary: #1a2a6c;
+    --stockidea-secondary: #b21f1f;
+    --stockidea-accent: #fdbb2d;
+    --stockidea-bg: #f8f9fa;
+}
+
+.o_main_navbar {
+    background-color: var(--stockidea-primary) !important;
+    border-bottom: 2px solid var(--stockidea-accent);
+}
+
+.o_form_view {
+    background-color: white !important;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* Sidebar & Buttons Styling */
+.oe_stat_button {
+    border-radius: 8px !important;
+    transition: all 0.3s ease;
+    border: 1px solid #eee !important;
+}
+
+.oe_stat_button:hover {
+    background-color: #f0f7ff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Statusbar Customization */
+.o_statusbar_status {
+    background-color: #eef2f7 !important;
+    border-radius: 20px;
+    padding: 0 10px;
+}
+
+.o_arrow_button.oe_active {
+    background-color: var(--stockidea-accent) !important;
+    color: black !important;
+    font-weight: bold;
+}
+
+/* Lead Scoring Progress Bar */
+.o_progressbar .o_progress {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    height: 12px;
+}
+
+.o_progressbar .o_progress .o_progressbar_fill {
+    background: linear-gradient(90deg, #fdbb2d 0%, #b21f1f 100%);
+    border-radius: 10px;
+}
+
+/* Notebook Tabs - Modern look */
+.nav-tabs {
+    border-bottom: 2px solid #eee;
+}
+
+.nav-tabs .nav-link {
+    font-weight: 500;
+    color: #666;
+    border: none;
+    margin-right: 15px;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--stockidea-primary);
+    border-bottom: 3px solid var(--stockidea-primary);
+    font-weight: 700;
+}

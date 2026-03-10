@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View -->
+    <record id="view_risk_profile_tree" model="ir.ui.view">
+        <field name="name">stockidea.risk.tree</field>
+        <field name="model">stockidea.risk</field>
+        <field name="arch" type="xml">
+            <tree string="Risk Profiles">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="risk_score"/>
+                <field name="investment_cap"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_risk_profile_form" model="ir.ui.view">
+        <field name="name">stockidea.risk.form</field>
+        <field name="model">stockidea.risk</field>
+        <field name="arch" type="xml">
+            <form string="Risk Profile">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="age_bracket"/>
+                        </group>
+                        <group>
+                            <field name="investment_cap"/>
+                            <field name="experience_level"/>
+                            <field name="risk_score"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_risk_profile" model="ir.actions.act_window">
+        <field name="name">Risk Profiles</field>
+        <field name="res_model">stockidea.risk</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Menu Item (Under CRM Configuration as an example) -->
+    <menuitem id="menu_risk_profile"
+              name="Risk Profiles"
+              parent="crm.crm_menu_config"
+              action="action_risk_profile"
+              sequence="10"/>
+</odoo>

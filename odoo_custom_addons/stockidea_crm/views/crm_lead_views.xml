@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crm_lead_form_inherit_stockidea" model="ir.ui.view">
+        <field name="name">crm.lead.form.inherit.stockidea</field>
+        <field name="model">crm.lead</field>
+        <field name="inherit_id" ref="crm.crm_lead_view_form"/>
+        <field name="arch" type="xml">
+            <!-- Hide unwanted fields to simplify for employees -->
+            <xpath expr="//field[@name='website']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='tag_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='priority']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//notebook" position="inside">
+                <page string="Lead Enrichment &amp; KYC">
+                    <group>
+                        <group string="Trading Info">
+                            <field name="demat_id"/>
+                            <field name="demat_status"/>
+                        </group>
+                        <group string="NPC Tracking">
+                            <field name="npc_count"/>
+                            <field name="last_npc_at"/>
+                        </group>
+                    </group>
+                    <group string="AI Insights">
+                        <div class="oe_button_box" name="ai_buttons">
+                            <button name="action_ai_score_lead" type="object" string="Auto-Score" class="btn-primary" icon="fa-calculator"/>
+                            <button name="action_ai_analyze_sentiment" type="object" string="Analyze Sentiment" class="btn-secondary" icon="fa-heartbeat"/>
+                            <button name="action_ai_draft_email" type="object" string="Draft Reply" class="btn-info" icon="fa-pencil"/>
+                        </div>
+                        <field name="ai_score" widget="progressbar"/>
+                        <field name="ai_sentiment"/>
+                        <field name="ai_summary"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

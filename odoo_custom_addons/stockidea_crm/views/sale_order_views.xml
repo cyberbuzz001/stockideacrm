@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_order_form_inherit_stockidea" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.stockidea</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <header>
+                <button name="action_open_installment_wizard" string="Add Installment" type="object" class="oe_highlight" invisible="state != 'sale'"/>
+            </header>
+        </field>
+    </record>
+</odoo>

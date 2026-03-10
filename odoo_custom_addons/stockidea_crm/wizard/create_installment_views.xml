@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_installment_wizard_form" model="ir.ui.view">
+        <field name="name">stockidea.installment.wizard.form</field>
+        <field name="model">stockidea.installment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create Installment Invoice">
+                <group>
+                    <field name="sale_order_id" invisible="1"/>
+                    <field name="description"/>
+                    <field name="amount"/>
+                </group>
+                <footer>
+                    <button string="Create Invoice" name="action_create_invoice" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_installment_wizard" model="ir.actions.act_window">
+        <field name="name">Add Installment</field>
+        <field name="res_model">stockidea.installment.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

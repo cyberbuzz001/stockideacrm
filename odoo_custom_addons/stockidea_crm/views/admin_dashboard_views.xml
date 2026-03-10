@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Simplified List View for Admin Dashboard -->
+    <record id="view_crm_lead_admin_tree" model="ir.ui.view">
+        <field name="name">crm.lead.admin.tree</field>
+        <field name="model">crm.lead</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <tree string="Admin Lead Management" decoration-info="state == 'draft'" decoration-danger="npc_count > 5" editable="bottom">
+                <field name="create_date" readonly="1"/>
+                <field name="name"/>
+                <field name="contact_name"/>
+                <field name="phone" widget="phone"/>
+                <field name="user_id" string="Assigned Employee" widget="many2one_avatar_user"/>
+                <field name="stage_id" widget="statusbar" options="{'clickable': '1'}"/>
+                <field name="ai_score" widget="progressbar"/>
+                <field name="npc_count" string="NPCS"/>
+                <button name="action_ai_score_lead" type="object" icon="fa-magic" title="Re-Score"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Admin Dashboard Action -->
+    <record id="action_crm_lead_admin_dashboard" model="ir.actions.act_window">
+        <field name="name">Admin Lead Distribution</field>
+        <field name="res_model">crm.lead</field>
+        <field name="view_mode">tree</field>
+        <field name="view_id" ref="view_crm_lead_admin_tree"/>
+        <field name="domain">[]</field>
+        <field name="context">{'search_default_unassigned': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Assign new leads to your team here.
+            </p>
+        </field>
+    </record>
+
+    <!-- Custom Menu Entry -->
+    <menuitem id="menu_crm_admin_dashboard"
+              name="Admin Dashboard"
+              parent="crm.crm_menu_root"
+              action="action_crm_lead_admin_dashboard"
+              sequence="0"/>
+</odoo>
