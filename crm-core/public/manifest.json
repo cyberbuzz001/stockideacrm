@@ -1,0 +1,27 @@
+{
+  "short_name": "StockIdea",
+  "name": "StockIdea CRM AI",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+       "src": "/favicon.ico",
+       "type": "image/png",
+       "sizes": "192x192"
+    },
+    {
+       "src": "/favicon.ico",
+       "type": "image/png",
+       "sizes": "512x512"
+    }
+  ],
+  "start_url": "/dashboard",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#4f46e5",
+  "description": "StockIdea CRM with Offline Access"
+}
