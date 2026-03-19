@@ -1,0 +1,37 @@
+# Laravel / PHP
+crm-core/vendor/
+crm-core/.env
+crm-core/.env.*
+crm-core/storage/*.key
+crm-core/storage/framework/cache/data/*
+crm-core/storage/framework/sessions/*
+crm-core/storage/framework/views/*
+crm-core/storage/logs/*
+crm-core/bootstrap/cache/*
+crm-core/public/hot
+crm-core/public/storage
+crm-core/node_modules/
+
+# Python / Odoo
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+odoo_custom_addons/*.log
+
+# IDEs / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+*.dist
+.env
+
+# System
+node_modules/
+dist/
+build/
