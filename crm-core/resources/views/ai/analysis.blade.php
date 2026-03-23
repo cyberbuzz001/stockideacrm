@@ -70,15 +70,29 @@
 
                 <!-- Results Section -->
                 <div>
-                    @if(session('analysis_result'))
-                        @php $result = session('analysis_result'); @endphp
+                    @php 
+                        $result = session('analysis_result_obj') ?? $history->first(); 
+                    @endphp
+                    
+                    @if($result)
                         <div
                             class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-slate-100 h-full animate-fade-in-up">
                             <div class="p-6">
                                 <div class="flex items-center justify-between mb-6">
-                                    <h3 class="font-bold text-lg text-slate-900">Analysis Results</h3>
+                                    <h3 class="font-bold text-lg text-slate-900 uppercase tracking-tighter">Analysis Results</h3>
                                     <span
-                                        class="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-bold">Completed</span>
+                                        class="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-xs font-black uppercase">Completed</span>
+                                </div>
+
+                                <div class="mb-4 p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center justify-between">
+                                    <div>
+                                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">File Analyzed</p>
+                                        <p class="text-sm font-bold text-indigo-900">{{ $result->fileName ?? $result['fileName'] ?? 'recording.mp3' }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Date</p>
+                                        <p class="text-sm font-bold text-indigo-900">{{ isset($result->created_at) ? $result->created_at->format('d M, Y') : now()->format('d M, Y') }}</p>
+                                    </div>
                                 </div>
 
                                 <!-- Score -->
@@ -86,12 +100,12 @@
                                     <div class="bg-slate-50 p-4 rounded-xl text-center">
                                         <p class="text-xs text-slate-500 uppercase font-black tracking-widest mb-1">
                                             Sentiment</p>
-                                        <p class="text-xl font-bold text-green-600">{{ $result['sentiment'] }}</p>
+                                        <p class="text-xl font-bold text-green-600">{{ $result->sentiment ?? $result['sentiment'] }}</p>
                                     </div>
                                     <div class="bg-slate-50 p-4 rounded-xl text-center">
                                         <p class="text-xs text-slate-500 uppercase font-black tracking-widest mb-1">Score
                                         </p>
-                                        <p class="text-xl font-bold text-indigo-600">{{ $result['sentiment_score'] }}/100
+                                        <p class="text-xl font-bold text-indigo-600">{{ $result->sentiment_score ?? $result['sentiment_score'] }}/100
                                         </p>
                                     </div>
                                 </div>
@@ -101,7 +115,7 @@
                                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Detected
                                         Keywords</p>
                                     <div class="flex flex-wrap gap-2">
-                                        @foreach($result['keywords'] as $keyword)
+                                        @foreach($result->keywords ?? $result['keywords'] as $keyword)
                                             <span
                                                 class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold">#{{ $keyword }}</span>
                                         @endforeach
@@ -113,7 +127,7 @@
                                     <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">AI Summary
                                     </p>
                                     <p class="text-slate-600 text-sm leading-relaxed bg-slate-50 p-4 rounded-xl">
-                                        {{ $result['summary'] }}
+                                        {{ $result->summary ?? $result['summary'] }}
                                     </p>
                                 </div>
 
@@ -123,7 +137,7 @@
                                         Snippet</p>
                                     <div
                                         class="bg-slate-900 text-slate-300 p-4 rounded-xl text-xs font-mono whitespace-pre-line">
-                                        {{ $result['transcript'] }}
+                                        {{ $result->transcript ?? $result['transcript'] }}
                                     </div>
                                 </div>
 
@@ -147,6 +161,31 @@
                 </div>
 
             </div>
+
+            <!-- History Section -->
+            @if(count($history) > 1 || (!$result && count($history) > 0))
+            <div class="mt-12">
+                <h3 class="font-black text-slate-900 uppercase tracking-tighter mb-4">Recent Analyses</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach($history as $item)
+                        @if(!isset($result->id) || $item->id !== $result->id)
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">{{ $item->sentiment }}</span>
+                                <span class="text-[10px] font-bold text-slate-400">{{ $item->created_at->format('d M') }}</span>
+                            </div>
+                            <p class="text-sm font-bold text-slate-700 truncate mb-2">{{ $item->fileName }}</p>
+                            <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">{{ $item->summary }}</p>
+                            <div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl">
+                                <span class="text-[10px] font-black text-slate-400 uppercase">Score</span>
+                                <span class="text-xs font-black text-indigo-600">{{ $item->sentiment_score }}/100</span>
+                            </div>
+                        </div>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 </x-app-layout>

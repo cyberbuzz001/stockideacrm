@@ -30,7 +30,7 @@ class AdminControlController extends Controller
 
     public function index()
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (!auth()->user()->hasPermission('system', 'control_center')) {
             abort(403);
         }
 
@@ -45,7 +45,7 @@ class AdminControlController extends Controller
      */
     public function update(Request $request)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (!auth()->user()->hasPermission('system', 'control_center')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -66,7 +66,7 @@ class AdminControlController extends Controller
      */
     public function updateBranding(Request $request)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (!auth()->user()->hasPermission('system', 'control_center')) {
             abort(403);
         }
 
@@ -88,7 +88,7 @@ class AdminControlController extends Controller
      */
     public function overrideAttendance(Request $request)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (!auth()->user()->hasPermission('system', 'control_center')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
@@ -115,7 +115,7 @@ class AdminControlController extends Controller
      */
     public function updateTicker(Request $request)
     {
-        if (auth()->user()->role !== 'Admin') {
+        if (!auth()->user()->hasPermission('system', 'control_center')) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 

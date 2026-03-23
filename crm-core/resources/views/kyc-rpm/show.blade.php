@@ -110,14 +110,16 @@
                                         </div>
                                     </div>
                                     
-                                    @if(!$step->completed_at && in_array(auth()->user()->role, ['Admin', 'Manager']))
-                                        <form action="{{ route('leads.compliance.complete', $lead) }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="step_key" value="{{ $step->step_key }}">
-                                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">
-                                                Mark Done
-                                            </button>
-                                        </form>
+                                    @if(!$step->completed_at)
+                                        @can('rbac.compliance.complete_step')
+                                            <form action="{{ route('leads.compliance.step', $lead) }}" method="POST">
+                                                @csrf
+                                                <input type="hidden" name="step_key" value="{{ $step->step_key }}">
+                                                <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-md hover:bg-indigo-700 transition">
+                                                    Mark Done
+                                                </button>
+                                            </form>
+                                        @endcan
                                     @endif
                                 </div>
                             @endforeach

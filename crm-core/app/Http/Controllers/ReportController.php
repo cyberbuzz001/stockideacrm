@@ -15,7 +15,7 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA', 'BA'])) {
+        if (!$user || (!$user->hasPermission('performance', 'view_company') && !$user->hasPermission('performance', 'view_team') && !$user->hasPermission('performance', 'view_own'))) {
             abort(403);
         }
 
@@ -26,14 +26,16 @@ class ReportController extends Controller
         // Users: Admin/Manager sees all, SBA sees team, BA sees self
         $users = collect([]);
 
-        if ($user->role === 'Admin' || $user->role === 'Manager') {
-            $users = User::whereIn('role', ['BA', 'SBA'])->orderBy('name')->get();
-        } elseif ($user->role === 'SBA') {
+        if ($user->hasPermission('performance', 'view_company')) {
+            $users = User::whereIn('role', ['BA', 'SBA', 'Team Leader'])->orderBy('name')->get();
+        } elseif ($user->hasPermission('performance', 'view_team')) {
             $users = User::where('parent_id', $user->id)
                 ->orWhere('id', $user->id)
                 ->orderBy('name')->get();
-        } else {
+        } elseif ($user->hasPermission('performance', 'view_own')) {
             $users = collect([$user]);
+        } else {
+            abort(403);
         }
 
         $selectedUserId = $request->input('user_id');
@@ -93,6 +95,8 @@ class ReportController extends Controller
 
         $conversionFunnel = [
             'Total Leads'  => Lead::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])->count(),
+            'Assigned'     => Lead::whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+                                ->whereNotNull('assigned_to')->count(),
             'Contacted'    => LeadActivity::whereIn('lead_id', $funnelLeadIds)
                                 ->where('activity_type', 'Call Started')
                                 ->distinct('lead_id')->count(),

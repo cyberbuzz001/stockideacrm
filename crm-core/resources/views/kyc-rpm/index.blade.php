@@ -24,6 +24,7 @@
                                 <th class="px-4 py-2">PAN Status</th>
                                 <th class="px-4 py-2">KYC</th>
                                 <th class="px-4 py-2">RPM</th>
+                                <th class="px-4 py-2">Score</th>
                                 <th class="px-4 py-2">Assigned To</th>
                                 <th class="px-4 py-2">Action</th>
                             </tr>
@@ -47,6 +48,14 @@
                                     <span class="px-2 py-1 rounded-lg text-[10px] font-black uppercase {{ $lead->is_rpm_completed ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }}">
                                         {{ $lead->is_rpm_completed ? 'Done' : 'Pending' }}
                                     </span>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-full bg-slate-200 rounded-full h-1.5 min-w-[50px] overflow-hidden">
+                                            <div class="h-1.5 rounded-full {{ $lead->compliance_score === 100 ? 'bg-emerald-500' : ($lead->compliance_score >= 60 ? 'bg-amber-500' : 'bg-rose-500') }}" style="width: {{ $lead->compliance_score }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-black {{ $lead->compliance_score === 100 ? 'text-emerald-600' : ($lead->compliance_score >= 60 ? 'text-amber-600' : 'text-rose-600') }}">{{ $lead->compliance_score }}%</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4 font-bold text-slate-600">
                                     {{ $lead->assignedUser->name ?? 'Unassigned' }}

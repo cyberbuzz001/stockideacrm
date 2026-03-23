@@ -39,10 +39,28 @@ class AdvisoryCallController extends Controller
             ->latest('call_date')
             ->latest('call_time')
             ->paginate(20);
+            
+        // Calculate Hit Ratio for the current segment
+        $statsQuery = AdvisoryCall::query();
+        if ($segment !== 'All Equity') {
+            $statsQuery->where('segment', $segment);
+        }
+        
+        $totalSegmentCalls = $statsQuery->count();
+        $targetHits = (clone $statsQuery)->where('outcome', 'Target Achieved')->count();
+        $slHits = (clone $statsQuery)->where('outcome', 'SL Hit')->count();
+        $hitRatio = $totalSegmentCalls > 0 ? round(($targetHits / $totalSegmentCalls) * 100, 1) : 0;
+        
+        $performanceStats = (object)[
+            'total' => $totalSegmentCalls,
+            'hits' => $targetHits,
+            'sl' => $slHits,
+            'ratio' => $hitRatio
+        ];
 
         $segments = self::SEGMENTS;
 
-        return view('advisory-calls.index', compact('calls', 'segments', 'segment'));
+        return view('advisory-calls.index', compact('calls', 'segments', 'segment', 'performanceStats'));
     }
 
     /**
@@ -51,7 +69,7 @@ class AdvisoryCallController extends Controller
     public function create()
     {
         $user = auth()->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA'])) {
+        if (!$user || !$user->hasPermission('market_calls', 'publish')) {
             abort(403);
         }
 
@@ -66,7 +84,7 @@ class AdvisoryCallController extends Controller
     public function store(Request $request)
     {
         $user = $request->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA'])) {
+        if (!$user || !$user->hasPermission('market_calls', 'publish')) {
             abort(403);
         }
 
@@ -116,7 +134,7 @@ class AdvisoryCallController extends Controller
     public function broadcast(Request $request)
     {
         $currentUser = $request->user();
-        if (!$currentUser || !in_array($currentUser->role, ['Admin', 'Manager', 'SBA'])) {
+        if (!$currentUser || !$currentUser->hasPermission('market_calls', 'publish')) {
             abort(403);
         }
 
@@ -188,7 +206,7 @@ class AdvisoryCallController extends Controller
     public function updateOutcome(Request $request, AdvisoryCall $advisoryCall)
     {
         $user = $request->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA'])) {
+        if (!$user || !$user->hasPermission('market_calls', 'publish')) {
             abort(403);
         }
 
@@ -207,7 +225,7 @@ class AdvisoryCallController extends Controller
     public function destroy(AdvisoryCall $advisoryCall)
     {
         $user = auth()->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager'])) {
+        if (!$user || !$user->hasPermission('market_calls', 'edit_delete')) {
             abort(403);
         }
 

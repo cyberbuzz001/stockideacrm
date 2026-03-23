@@ -35,12 +35,18 @@ class LeadController extends Controller
         $query = Lead::query();
 
         $userRole = $user->role;
-        if ($userRole === 'Admin') {
-            // Admin sees all leads
-        } elseif ($userRole === 'SBA' || $userRole === 'Manager') {
+        // ═══════════════════════════════════════════
+        // RBAC FETCHING LOGIC
+        // ═══════════════════════════════════════════
+        if ($user->hasPermission('leads', 'view_all')) {
+            // Admin/Manager (if allowed) sees all leads
+        } elseif ($user->hasPermission('leads', 'view_team')) {
             $teamIds = $user->getAllTeamIds();
             $query->whereIn('assigned_to', $teamIds);
+        } elseif ($user->hasPermission('leads', 'view_own')) {
+            $query->where('assigned_to', $user->id);
         } else {
+            // No permission to view leads? Default to own or abort.
             $query->where('assigned_to', $user->id);
         }
 
@@ -208,8 +214,7 @@ class LeadController extends Controller
     public function completeComplianceStep(Request $request, Lead $lead)
     {
         $user = auth()->user();
-        $this->authorizeLead($lead, $user);
-        if (!in_array($user->role, ['Admin', 'Manager'], true)) {
+        if (!$user->hasPermission('compliance', 'complete_step')) {
             abort(403);
         }
 
@@ -224,8 +229,7 @@ class LeadController extends Controller
     public function updateComplianceExpiry(Request $request, Lead $lead)
     {
         $user = auth()->user();
-        $this->authorizeLead($lead, $user);
-        if (!in_array($user->role, ['Admin', 'Manager'], true)) {
+        if (!$user->hasPermission('compliance', 'audit')) {
             abort(403);
         }
 
@@ -635,24 +639,100 @@ class LeadController extends Controller
 
         $file = $request->file('csv_file');
         $handle = fopen($file->getPathname(), 'r');
-        $header = fgetcsv($handle);
+        $header = fgetcsv($handle); // Skip header
+
+        $imported = 0;
+        $duplicates = 0;
+        $errors = 0;
 
         while (($row = fgetcsv($handle)) !== false) {
-            if (empty($row[0])) {
+            // Mapping: 0=Name, 1=Mobile, 2=Email, 3=City
+            $name = isset($row[0]) ? $this->sanitizeText($row[0]) : 'N/A';
+            $mobile = isset($row[1]) ? preg_replace('/[^0-9]/', '', $row[1]) : null;
+            $email = isset($row[2]) ? $this->sanitizeText($row[2]) : null;
+            $city = isset($row[3]) ? $this->sanitizeText($row[3]) : null;
+
+            if (empty($mobile)) {
+                $errors++;
                 continue;
             }
 
-            Lead::create([
-                'name' => $this->sanitizeText($row[0]),
-                'city' => isset($row[3]) ? $this->sanitizeText($row[3]) : null,
-                'status' => 'Cold Lead',
-                'lead_score' => 10,
-                'source' => 'Bulk Import'
-            ]);
+            if (Lead::where('mobile', $mobile)->exists()) {
+                $duplicates++;
+                continue;
+            }
+
+            try {
+                Lead::create([
+                    'name' => $name,
+                    'mobile' => $mobile,
+                    'email' => $email,
+                    'city' => $city,
+                    'status' => 'Cold Lead',
+                    'lead_score' => 10,
+                    'source' => 'Bulk CSV Import',
+                    'assigned_by' => $user->id
+                ]);
+                $imported++;
+            } catch (\Exception $e) {
+                $errors++;
+            }
         }
 
         fclose($handle);
-        return redirect()->route('leads.index')->with('success', 'Leads imported successfully.');
+        
+        $message = "Import complete. $imported leads added.";
+        if ($duplicates > 0) $message .= " $duplicates duplicates skipped.";
+        if ($errors > 0) $message .= " $errors invalid rows skipped.";
+
+        return redirect()->route('leads.index')->with('success', $message);
+    }
+
+    public function flush(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || $user->role !== 'Admin') {
+            abort(403);
+        }
+
+        $request->validate([
+            'type' => 'required|in:unassigned,cold,older_than_30,all'
+        ]);
+
+        $type = $request->input('type');
+        $query = Lead::query();
+
+        if ($type === 'unassigned') {
+            $query->whereNull('assigned_to');
+            $description = "Flushed all unassigned leads.";
+        } elseif ($type === 'cold') {
+            $query->where('status', 'Cold Lead');
+            $description = "Flushed all cold leads.";
+        } elseif ($type === 'older_than_30') {
+            $query->where('created_at', '<', now()->subDays(30));
+            $description = "Flushed leads older than 30 days.";
+        } elseif ($type === 'all') {
+             // CAUTION: This will delete everything. 
+             // We'll keep it as an option if requested, but generally dangerous.
+             $description = "Flushed ALL leads from the system.";
+        }
+
+        $count = $query->count();
+        $query->delete();
+
+        // Log the activity
+        DB::table('system_activities')->insert([
+            'user_id' => $user->id,
+            'activity_type' => 'System Flush',
+            'description' => $description . " Total deleted: " . $count,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $count . ' leads flushed successfully.'
+        ]);
     }
 
     public function export(Request $request)

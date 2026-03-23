@@ -157,4 +157,16 @@ class NotificationController extends Controller
 
         return response()->json($cachedData);
     }
+
+    /**
+     * Mark all database notifications as read
+     */
+    public function readAll()
+    {
+        $user = auth()->user();
+        if ($user) {
+            $user->unreadNotifications->markAsRead();
+        }
+        return redirect()->back();
+    }
 }

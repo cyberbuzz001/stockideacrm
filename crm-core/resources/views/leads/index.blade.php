@@ -196,7 +196,7 @@
                                                         📱 {{ $lead->mobile }}
                                                     </a>
                                                     @php
-                                                        $waMessage = urlencode("Hi {$lead->name}, this is " . auth()->user()->name . " from StockIdea. I'm reaching out regarding your recent inquiry. How can I help you today?");
+                                                        $waMessage = urlencode("Hi {$lead->name}, this is " . auth()->user()->name . " from {$company_name}. I'm reaching out regarding your recent inquiry. How can I help you today?");
                                                     @endphp
                                                     <a href="https://wa.me/91{{ preg_replace('/[^0-9]/', '', $lead->mobile) }}?text={{ $waMessage }}" target="_blank" class="text-emerald-500 hover:text-emerald-600 transition-colors flex items-center gap-1 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold border border-emerald-100" title="WhatsApp 1-Click">
                                                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.549 4.131 1.594 5.928L0 24l6.233-1.576c1.728 1 3.682 1.536 5.765 1.536 6.638 0 12.022-5.382 12.022-12.031zM12.031 22.022c-1.802 0-3.564-.485-5.111-1.402l-.366-.217-3.793.961.981-3.69-.239-.379c-.997-1.591-1.523-3.425-1.523-5.282 0-5.558 4.524-10.082 10.082-10.082s10.081 4.524 10.081 10.082c-.001 5.558-4.525 10.081-10.082 10.081zm5.534-7.555c-.303-.152-1.795-.886-2.073-.988-.278-.103-.48-.152-.683.153-.203.303-.783.987-.959 1.189-.176.202-.352.227-.655.076-1.532-.765-2.791-1.638-3.901-3.535-.114-.194-.012-.303.141-.453.138-.135.303-.353.454-.531.152-.178.202-.303.303-.505.101-.202.051-.379-.025-.53-.076-.152-.682-1.644-.935-2.253-.247-.591-.497-.509-.682-.519-.176-.008-.379-.011-.581-.011s-.53.076-.808.379c-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.086 2.932 1.238 3.134.152.202 2.138 3.264 5.176 4.576.721.312 1.284.498 1.725.638.723.23 1.382.197 1.898.119.579-.088 1.795-.733 2.047-1.44.253-.708.253-1.315.177-1.442-.075-.126-.277-.201-.58-.352z"/></svg>
@@ -216,6 +216,12 @@
                                                         <div class="ml-2 inline-flex items-center gap-1 bg-rose-50 border border-rose-100 text-rose-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest animate-pulse" title="Lead untouched for > 2 hours">
                                                             <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                                             Aging
+                                                        </div>
+                                                    @endif
+                                                    @if($lead->is_stale)
+                                                        <div class="ml-2 inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest" title="No activity for > 3 days">
+                                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                            Stale
                                                         </div>
                                                     @endif
                                                 </div>

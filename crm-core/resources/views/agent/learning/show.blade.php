@@ -50,7 +50,7 @@
             </div>
             
             <div class="bg-slate-50 border-t border-slate-100 p-3 text-center">
-                <p class="text-[10px] text-slate-400 font-mono tracking-wider">DO NOT DOWNLOAD OR DISTRIBUTE. PROPERTY OF STOCKIDEA.</p>
+                <p class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">DO NOT DOWNLOAD OR DISTRIBUTE. PROPERTY OF {{ $company_name }}.</p>
             </div>
         </div>
     </div>

@@ -133,6 +133,12 @@
                             <tr>
                                 <td colspan="3" style="text-align: center; font-style: italic;">No activity recorded today.
                                 </td>
+                                <td style="text-align: right;">{{ $agent->calls_count }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" style="text-align: center; font-style: italic;">No activity recorded today.
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -140,7 +146,7 @@
             </div>
 
             <div class="footer">
-                <p>This report was generated automatically by StockIdea CRM.</p>
+                <p>This report was generated automatically by {{ \App\Models\SystemSetting::get('company_name', 'StockIdea') }} CRM.</p>
             </div>
         </div>
     </div>

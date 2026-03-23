@@ -18,11 +18,18 @@ class ClientController extends Controller
         $query = Lead::where('status', 'Paid Client');
 
         // Role Based Visibility
-        if ($user->role === 'BA') {
-            $query->where('assigned_to', $user->id);
-        } elseif ($user->role === 'SBA' || $user->role === 'Manager') {
+        // ═══════════════════════════════════════════
+        // RBAC FETCHING LOGIC
+        // ═══════════════════════════════════════════
+        if ($user->hasPermission('clients', 'view_all')) {
+            // No filter
+        } elseif ($user->hasPermission('clients', 'view_team')) {
             $teamIds = $user->getAllTeamIds();
             $query->whereIn('assigned_to', $teamIds);
+        } elseif ($user->hasPermission('clients', 'view_own')) {
+            $query->where('assigned_to', $user->id);
+        } else {
+            $query->where('assigned_to', $user->id);
         }
 
         // Eager load payments to show the active subscription plan on the index page
@@ -39,6 +46,59 @@ class ClientController extends Controller
         $clients = $query->latest('service_start_date')->paginate(15);
 
         return view('clients.index', compact('clients'));
+    }
+
+    public function retention(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA', 'BA'])) {
+            abort(403);
+        }
+
+        $query = Lead::where('status', 'Paid Client');
+        if ($user->hasPermission('clients', 'view_all')) {
+            // No filter
+        } elseif ($user->hasPermission('clients', 'view_team')) {
+            $teamIds = $user->getAllTeamIds();
+            $query->whereIn('assigned_to', $teamIds);
+        } elseif ($user->hasPermission('clients', 'view_own')) {
+            $query->where('assigned_to', $user->id);
+        } else {
+            $query->where('assigned_to', $user->id);
+        }
+
+        $totalActive = (clone $query)->where('renewal_date', '>=', now())->count();
+        $expired = (clone $query)->where('renewal_date', '<', now())->count();
+        
+        $expiringIn30Days = (clone $query)
+            ->withCount('activities')
+            ->whereBetween('renewal_date', [now(), now()->addDays(30)])
+            ->orderBy('renewal_date', 'asc')
+            ->get()
+            ->map(function ($client) {
+                // AI Churn Prediction: Less activities = Higher Churn Risk. Base risk 85%
+                $risk = max(12, min(98, 85 - ($client->activities_count * 8)));
+                $client->churn_risk_score = $risk;
+                
+                if ($risk >= 70) $client->churn_risk_level = 'High Risk';
+                elseif ($risk >= 40) $client->churn_risk_level = 'Medium Risk';
+                else $client->churn_risk_level = 'Low Risk';
+                
+                return $client;
+            });
+            
+        $recentlyExpired = (clone $query)
+            ->whereBetween('renewal_date', [now()->subDays(60), now()->subSeconds(1)])
+            ->orderBy('renewal_date', 'desc')
+            ->get();
+            
+        $renewalRate = ($totalActive + $expired) > 0 
+            ? round(($totalActive / ($totalActive + $expired)) * 100, 1) 
+            : 0;
+
+        return view('clients.retention', compact(
+            'totalActive', 'expired', 'expiringIn30Days', 'recentlyExpired', 'renewalRate'
+        ));
     }
 
     public function show(Lead $client)

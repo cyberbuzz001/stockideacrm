@@ -1,850 +1,493 @@
-﻿<x-app-layout>
+<x-app-layout>
     @php
         $hour = now()->hour;
         $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
-        $greetingEmoji = $hour < 12 ? 'â˜€ï¸' : ($hour < 17 ? 'ðŸ‘‹' : 'ðŸŒ™');
+        $greetingEmoji = $hour < 12 ? '🌟' : ($hour < 17 ? '👋' : '🌙');
+        $role = Auth::user()->role;
     @endphp
 
-    <div class="p-6 max-w-7xl mx-auto space-y-6">
+    <div class="space-y-8">
 
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             SALES TIP OF THE HOUR â€” SYNCED WIDGET
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <style>
-            @keyframes tipFlipIn {
-                0% { opacity: 0; transform: rotateX(-90deg) scale(0.95); }
-                60% { opacity: 1; transform: rotateX(5deg) scale(1.02); }
-                100% { opacity: 1; transform: rotateX(0deg) scale(1); }
-            }
-            @keyframes tipPulseGlow {
-                0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.15); }
-                50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
-            }
-            .tip-flip-animate {
-                animation: tipFlipIn 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-            }
-            .tip-card-glow {
-                animation: tipPulseGlow 3s ease-in-out infinite;
-            }
-            .tip-copied-toast {
-                animation: tipFlipIn 0.3s ease forwards;
-            }
-        </style>
-        <div id="sales-tip-widget" class="relative bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 rounded-2xl p-5 shadow-lg border border-indigo-500/20 tip-card-glow overflow-hidden">
-            <!-- Background pattern -->
-            <div class="absolute inset-0 opacity-[0.07]" style="background-image: url('data:image/svg+xml,<svg width=&quot;40&quot; height=&quot;40&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;><circle cx=&quot;20&quot; cy=&quot;20&quot; r=&quot;1.5&quot; fill=&quot;white&quot;/></svg>'); background-size: 40px 40px;"></div>
-            <div class="relative flex items-start gap-4">
-                <!-- Icon -->
-                <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-inner">
-                    <span class="text-2xl">ðŸ’¡</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-2">
-                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-200">Sales Tip of the Hour</h3>
-                        <span id="tip-counter" class="text-[9px] font-black text-white/40 bg-white/10 px-2 py-0.5 rounded-full">#1/100</span>
-                        <span id="tip-timer" class="text-[9px] font-bold text-white/30 ml-auto hidden sm:inline-flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span id="tip-next-change"></span>
-                        </span>
-                    </div>
-                    <!-- Question -->
-                    <p id="tip-question" class="text-white font-bold text-lg sm:text-xl leading-snug tip-flip-animate mb-3" style="perspective: 800px;">
-                        Loading question...
-                    </p>
-                    <!-- Strategy -->
-                    <div id="tip-strategy-container" class="bg-black/20 backdrop-blur-md rounded-xl p-3 border border-white/10 tip-flip-animate" style="animation-delay: 0.1s">
-                        <p class="text-[9px] font-black uppercase tracking-widest text-indigo-300 mb-1">Winning Strategy</p>
-                        <p id="tip-strategy" class="text-white/80 text-xs font-semibold leading-relaxed">
-                            Loading strategy...
+        {{-- Unified Greeting & Period Selector moved into role-specific blocks or made common --}}
+
+
+        @if($role === 'Admin')
+            <!-- ───────────── ADMIN VIEW ───────────── -->
+            <div class="space-y-8">
+                <!-- TOP SECTION: Greeting -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-black text-[#111827] tracking-tight mb-1">
+                            Good {{ now()->hour < 12 ? 'morning' : (now()->hour < 17 ? 'afternoon' : 'evening') }}, Admin 🌟
+                        </h1>
+                        <p class="text-sm font-bold text-[#6B7280] tracking-wide uppercase">
+                            {{ now()->format('l, F j') }} · Here's your CRM snapshot
                         </p>
                     </div>
-                </div>
-                <!-- Copy Button -->
-                <button id="tip-copy-btn" onclick="copySalesTip()" class="flex-shrink-0 mt-1 group relative bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border border-white/20 hover:border-white/40 hover:scale-105 active:scale-95 flex items-center gap-2 shadow-sm">
-                    <svg id="tip-copy-icon" class="w-4 h-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                    </svg>
-                    <span id="tip-copy-label">Copy</span>
-                </button>
-            </div>
-        </div>
 
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             GREETING HEADER + DATE FILTER TABS
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-black text-slate-900">{{ $greeting }}, {{ Auth::user()->name }} {{ $greetingEmoji }}</h1>
-                <p class="text-sm text-slate-400 mt-0.5">{{ now()->format('l, F j') }} Â· Here's your CRM snapshot</p>
-            </div>
-
-            {{-- Date Filter Tabs --}}
-            <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-sm font-semibold">
-                @foreach(['today' => 'Today', 'week' => 'This Week', 'month' => 'Month', 'ytd' => 'YTD'] as $key => $label)
-                    <a href="?period={{ $key }}"
-                       class="px-4 py-2 rounded-lg transition-all {{ (request('period', 'week') === $key) ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800' }}">
-                        {{ $label }}
-                    </a>
-                @endforeach
-                <div class="w-px h-6 bg-slate-200 mx-1"></div>
-                <a href="{{ route('leads.index', ['tab' => 'trial']) }}" class="px-4 py-2 rounded-lg transition-all text-slate-600 hover:text-slate-800 flex items-center gap-1 bg-white border border-slate-200 shadow-sm">
-                    <span class="w-2 h-2 rounded-full bg-cyan-500"></span>
-                    Free Trial
-                </a>
-            </div>
-        </div>
-
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             LIVE LEADERBOARD (visible to ALL roles)
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6" id="leaderboard-section">
-            <div class="flex items-center justify-between mb-5">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">ðŸ†</span>
-                    <h2 class="font-bold text-slate-900 text-base">Live Leaderboard â€” Today</h2>
-                    <span class="flex items-center gap-1 text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
-                        LIVE
-                    </span>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span id="leaderboard-updated" class="text-[10px] text-slate-400 font-mono hidden">Updated <span id="leaderboard-time"></span></span>
-                    <a href="{{ route('reports.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                        Full Report <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                    </a>
-                </div>
-            </div>
-
-            {{-- Initial server-rendered (instant display on load) --}}
-            <div id="leaderboard-body" class="space-y-3">
-                @forelse($leaderboard as $index => $agent)
-                    @php
-                        $maxRevenue = $leaderboard->max(fn($a) => $a->payments_sum_amount ?? 0) ?: 1;
-                        $pct = round((($agent->payments_sum_amount ?? 0) / $maxRevenue) * 100);
-                        $medals = ['ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰'];
-                        $barColors = ['bg-indigo-500','bg-emerald-500','bg-amber-500','bg-rose-400','bg-slate-300'];
-                        $color = $barColors[$index] ?? 'bg-slate-200';
-                    @endphp
-                    <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                        <div class="w-6 text-center font-black text-sm {{ $index === 0 ? 'text-yellow-500' : ($index === 1 ? 'text-slate-400' : ($index === 2 ? 'text-amber-600' : 'text-slate-300')) }}">
-                            {{ $medals[$index] ?? '#'.($index+1) }}
-                        </div>
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                            {{ strtoupper(substr($agent->name, 0, 2)) }}
-                        </div>
-                        <div class="flex-1 min-w-0 pr-2">
-                            <div class="flex items-center justify-between">
-                                <p class="text-sm font-bold text-slate-900 truncate">{{ $agent->name }}</p>
-                                <span class="text-[10px] text-slate-400 font-mono ml-2 flex-shrink-0">{{ $agent->calls_today ?? 0 }} calls</span>
-                            </div>
-                            <div class="mt-1.5 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                <div class="{{ $color }} h-full rounded-full transition-all duration-700" style="width: {{ $pct }}%"></div>
-                            </div>
-                        </div>
-                        <div class="text-sm font-black text-slate-700 flex-shrink-0">INR {{ number_format($agent->payments_sum_amount ?? 0) }}</div>
-                    </div>
-                @empty
-                    <div class="text-center py-10" id="leaderboard-empty">
-                        <p class="text-slate-400 text-sm">No sales recorded today.</p>
-                        <p class="text-xs text-slate-300 mt-1">Be the first on the board!</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             MONTHLY LEADERBOARD (visible to ALL roles)
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6" id="monthly-leaderboard-section">
-            <div class="flex items-center justify-between mb-5">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">ðŸ“…</span>
-                    <h2 class="font-bold text-slate-900 text-base">Monthly Leaderboard â€” <span id="monthly-lb-label">{{ now()->format('F Y') }}</span></h2>
-                </div>
-                <a href="{{ route('reports.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                    Full Report <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                </a>
-            </div>
-
-            {{-- Server-rendered initial state --}}
-            <div id="monthly-leaderboard-body" class="space-y-3">
-                @php
-                    $monthlyLeaderboard = \App\Models\User::whereIn('role', ['BA', 'SBA'])
-                        ->withSum([
-                            'payments' => fn($q) => $q
-                                ->where('payments.status', 'Verified')
-                                ->whereBetween('payment_date', [now()->startOfMonth(), now()->endOfDay()])
-                        ], 'amount')
-                        ->withCount([
-                            'activities as calls_month' => fn($q) => $q
-                                ->where('activity_type', 'Call Started')
-                                ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfDay()])
-                        ])
-                        ->orderByDesc('payments_sum_amount')
-                        ->take(10)
-                        ->get();
-                    $monthlyMax = $monthlyLeaderboard->max('payments_sum_amount') ?: 1;
-                    $mBars      = ['bg-indigo-500','bg-emerald-500','bg-amber-500','bg-rose-400','bg-slate-300'];
-                    $mMedals    = ['ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰'];
-                    $mRankClr   = ['text-yellow-500','text-slate-400','text-amber-600','text-slate-300'];
-                @endphp
-
-                @forelse($monthlyLeaderboard as $idx => $agent)
-                    @php
-                        $mPct   = round((($agent->payments_sum_amount ?? 0) / $monthlyMax) * 100);
-                        $mColor = $mBars[$idx] ?? 'bg-slate-200';
-                    @endphp
-                    <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                        <div class="w-6 text-center font-black text-sm {{ $mRankClr[$idx] ?? 'text-slate-300' }}">
-                            {{ $mMedals[$idx] ?? '#'.($idx+1) }}
-                        </div>
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                            {{ strtoupper(substr($agent->name, 0, 2)) }}
-                        </div>
-                        <div class="flex-1 min-w-0 pr-2">
-                            <div class="flex items-center justify-between">
-                                <p class="text-sm font-bold text-slate-900 truncate">{{ $agent->name }}</p>
-                                <span class="text-[10px] text-slate-400 font-mono ml-2 flex-shrink-0">{{ $agent->calls_month ?? 0 }} calls</span>
-                            </div>
-                            <div class="mt-1.5 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                <div class="{{ $mColor }} h-full rounded-full transition-all duration-700" style="width: {{ $mPct }}%"></div>
-                            </div>
-                        </div>
-                        <div class="text-sm font-black text-slate-700 flex-shrink-0">INR {{ number_format($agent->payments_sum_amount ?? 0) }}</div>
-                    </div>
-                @empty
-                    <div class="text-center py-10">
-                        <p class="text-slate-400 text-sm">No monthly sales yet.</p>
-                        <p class="text-xs text-slate-300 mt-1">First sale wins the throne!</p>
-                    </div>
-                @endforelse
-            </div>
-        </div>
-        </div>
-        @if($role === 'Admin')
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             KPI CARDS (Admin)
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-
-            <!-- Total Leads -->
-            <a href="{{ route('leads.index') }}" class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm block group">
-                <div class="flex items-start justify-between mb-3">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Leads</p>
-                    <div class="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <div class="flex items-center bg-white p-1 rounded-xl border border-[#E5E7EB] shadow-sm">
+                        @foreach(['today' => 'Today', 'week' => 'This Week', 'month' => 'Month', 'ytd' => 'YTD'] as $key => $label)
+                            <a href="?period={{ $key }}" 
+                               class="px-4 py-1.5 rounded-lg text-xs font-black transition-all {{ (request('period', 'week') === $key) ? 'bg-[#4F46E5] text-white shadow-md shadow-indigo-100' : 'text-[#6B7280] hover:bg-[#F9FAFB]' }}">
+                                {{ $label }}
+                            </a>
+                        @endforeach
                     </div>
                 </div>
-                <p class="text-3xl font-black text-slate-900">{{ number_format($stats['total_leads']) }}</p>
-                <div class="mt-2 flex items-center gap-1 text-emerald-600">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-                    <span class="text-xs font-bold">{{ $stats['leads_this_week'] ?? '0' }} leads this week</span>
-                </div>
-            </a>
 
-            <!-- Paid Clients -->
-            <a href="{{ route('clients.index') }}" class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm block group">
-                <div class="flex items-start justify-between mb-3">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Paid Clients</p>
-                    <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                <p class="text-3xl font-black text-slate-900">{{ $stats['paid_clients'] }}</p>
-                <div class="mt-2 flex items-center gap-1 text-emerald-600">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-                    <span class="text-xs font-bold">{{ $stats['new_clients_week'] ?? '0' }} new this week</span>
-                </div>
-            </a>
-
-            <!-- Monthly Revenue -->
-            <a href="{{ route('payments.index') }}" class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm block">
-                <div class="flex items-start justify-between mb-3">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Monthly Revenue</p>
-                    <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                <p class="text-3xl font-black text-slate-900">INR {{ number_format($stats['monthly_revenue']) }}</p>
-                <div class="mt-2 flex items-center gap-1 text-slate-400">
-                    <span class="text-xs font-medium">â€” {{ $stats['monthly_revenue'] > 0 ? 'Revenue tracked' : 'No transactions yet' }}</span>
-                </div>
-            </a>
-
-            <!-- Pending Approvals -->
-            <a href="{{ route('payments.index') }}" class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm block">
-                <div class="flex items-start justify-between mb-3">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Approvals</p>
-                    <div class="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    </div>
-                </div>
-                <p class="text-3xl font-black text-slate-900">{{ $stats['pending_approvals'] }}</p>
-                <div class="mt-2">
-                    @if($stats['pending_approvals'] > 0)
-                        <span class="text-xs font-bold text-rose-500">Needs attention</span>
-                    @else
-                        <span class="text-xs font-medium text-slate-400">â€” All clear</span>
-                    @endif
-                </div>
-            </a>
-        </div>
-
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             MAIN GRID: ROLE-SPECIFIC CONTENT
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Spacer placeholder to align with system overview --}}
-            <div class="lg:col-span-2"></div>
-            <div class="space-y-5">
-                <!-- System Quick Stats -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="font-bold text-slate-900 text-base">System Overview</h2>
-                        <span class="flex items-center gap-1.5 text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1 rounded-full">
-                            <span class="pulse-dot w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
-                            {{ $system_health['active_users'] }} Active
-                        </span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-slate-50 rounded-xl p-3 text-center">
-                            <p class="text-2xl font-black text-slate-900">{{ $system_health['leads_today'] }}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">New Leads Today</p>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3 text-center">
-                            <p class="text-2xl font-black text-slate-900">{{ $system_health['active_users'] }}</p>
-                            <p class="text-xs text-slate-400 mt-0.5">Active Users</p>
-                        </div>
-                    </div>
-
-                    <!-- Lead Pipeline -->
-                    <div class="mt-5">
-                        <p class="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Lead Pipeline</p>
-                        @php
-                            $pipeline = [
-                                'New' => \App\Models\Lead::where('status', 'Cold Lead')->count(),
-                                'Contacted' => \App\Models\Lead::where('status', 'Call Back')->count(),
-                                'Interested' => \App\Models\Lead::where('status', 'Free Trial')->count(),
-                                'Converted' => \App\Models\Lead::where('status', 'Paid Client')->count(),
-                            ];
-                            $maxPipe = max($pipeline) ?: 1;
-                            $pipeColors = ['New' => 'bg-indigo-500', 'Contacted' => 'bg-violet-500', 'Interested' => 'bg-amber-500', 'Converted' => 'bg-emerald-500'];
-                        @endphp
-                        <div class="space-y-2.5">
-                            @foreach($pipeline as $stage => $count)
-                            <div>
-                                <div class="flex justify-between items-center text-xs mb-1">
-                                    <span class="text-slate-500 font-medium">{{ $stage }}</span>
-                                    <span class="font-bold text-slate-700">{{ $count }}</span>
+                <!-- LEADERBOARD ROW -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left Card: Leaderboard Today -->
+                    <div class="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col">
+                        <div class="p-6 border-b border-[#F3F4F6] flex justify-between items-center bg-white">
+                            <h3 class="font-black text-sm text-[#111827] flex items-center gap-2">
+                                <span class="text-lg">🏆</span> Live Leaderboard — Today
+                            </h3>
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center gap-1.5 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                    <span class="w-1.5 h-1.5 bg-[#10B981] rounded-full animate-pulse"></span>
+                                    <span class="text-[9px] font-black text-[#10B981] uppercase tracking-widest">Live</span>
                                 </div>
-                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                                    <div class="{{ $pipeColors[$stage] }} h-full rounded-full transition-all duration-700" style="width: {{ round($count / $maxPipe * 100) }}%"></div>
-                                </div>
+                                <a href="#" class="text-[10px] font-black text-[#4F46E5] uppercase tracking-widest hover:underline">Full Report</a>
                             </div>
+                        </div>
+                        <div class="flex-1 p-6 space-y-5">
+                            @foreach($leaderboard->take(4) as $idx => $player)
+                                <div class="flex items-center gap-4 group">
+                                    <div class="w-6 text-center font-black text-xs {{ $idx == 0 ? 'text-amber-500' : ($idx == 1 ? 'text-slate-400' : ($idx == 2 ? 'text-amber-700' : 'text-[#9CA3AF]')) }}">
+                                        {{ $idx == 0 ? '🥇' : ($idx == 1 ? '🥈' : ($idx == 2 ? '🥉' : $idx + 1)) }}
+                                    </div>
+                                    <div class="w-10 h-10 rounded-xl bg-[#F3F4F6] flex items-center justify-center font-black text-xs text-[#4F46E5] group-hover:bg-[#EEF2FF] transition-colors">
+                                        {{ strtoupper(substr($player->name, 0, 2)) }}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex justify-between items-end mb-1.5">
+                                            <span class="font-black text-sm text-[#374151] truncate">{{ $player->name }}</span>
+                                            <span class="font-mono text-sm font-black text-[#111827]">INR {{ number_format($player->payments_sum_amount ?? 0) }}</span>
+                                        </div>
+                                        <div class="w-full bg-[#F3F4F6] rounded-full h-1.5 overflow-hidden">
+                                            @php $max_revenue = $leaderboard->max('payments_sum_amount') ?: 1; @endphp
+                                            <div class="h-full bg-[#4F46E5] rounded-full group-hover:bg-[#6366F1] transition-all duration-700" style="width: {{ ($player->payments_sum_amount / $max_revenue) * 100 }}%"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
                     </div>
-                </div>
 
-                <!-- Quick Actions -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                    <p class="text-xs font-black text-slate-400 uppercase tracking-wider mb-3">Quick Actions</p>
-                    <div class="space-y-2">
-                        <a href="{{ route('leads.create') }}" class="w-full flex items-center gap-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl px-4 py-3 text-sm font-bold transition-colors">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                            Add New Lead
-                        </a>
-                        <a href="{{ route('leads.index') }}" class="w-full flex items-center gap-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl px-4 py-3 text-sm font-bold transition-colors">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            Import Leads
-                        </a>
-                        <a href="{{ route('employees.index') }}" class="w-full flex items-center gap-3 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl px-4 py-3 text-sm font-bold transition-colors">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                            User Management
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             BOTTOM GRID: PENDING APPROVALS + LIVE FEED
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-            <!-- Pending Approvals -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-5">
-                    <h2 class="font-bold text-slate-900 text-base">Pending Approvals</h2>
-                    <a href="{{ route('payments.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">Manage All â†’</a>
-                </div>
-                <div class="space-y-3">
-                    @forelse($pending_payments as $payment)
-                        <div class="flex items-center gap-4 p-3 bg-amber-50 border border-amber-100 rounded-xl">
-                            <div class="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center">
-                                <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="font-bold text-slate-900 text-sm">INR {{ number_format($payment->amount) }}</p>
-                                <p class="text-xs text-slate-500">For {{ $payment->lead->name ?? 'Unknown' }} Â· By {{ $payment->user->name ?? 'Unknown' }}</p>
-                            </div>
-                            <form action="{{ route('payments.verify', $payment) }}" method="POST" class="flex-shrink-0">
-                                @csrf
-                                <button type="submit" name="action" value="approve"
-                                    class="text-xs font-bold bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors">
-                                    Approve
-                                </button>
-                            </form>
+                    <!-- Right Card: Monthly Leaderboard -->
+                    <div class="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col">
+                        <div class="p-6 border-b border-[#F3F4F6] bg-white flex justify-between items-center">
+                            <h3 class="font-black text-sm text-[#111827] flex items-center gap-2">
+                                <span class="text-lg">📅</span> Monthly Performance — {{ now()->format('F Y') }}
+                            </h3>
+                            <button class="p-1.5 rounded-lg hover:bg-[#F3F4F6] text-[#9CA3AF]">
+                                <i data-lucide="more-horizontal" class="w-4 h-4"></i>
+                            </button>
                         </div>
-                    @empty
-                        <div class="text-center py-8">
-                            <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <svg class="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            </div>
-                            <p class="text-slate-400 text-sm font-medium">All clear! No pending approvals.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-
-            <!-- Live Market Feed -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex items-center justify-between mb-5">
-                    <div class="flex items-center gap-2">
-                        <span class="pulse-dot w-2 h-2 bg-red-500 rounded-full inline-block"></span>
-                        <h2 class="font-bold text-slate-900 text-base">Live Market Feed</h2>
-                    </div>
-                    <a href="{{ route('advisory-calls.index') }}" class="text-xs font-bold text-indigo-600 hover:text-indigo-800">History â†’</a>
-                </div>
-                <div class="space-y-3">
-                    @forelse($latest_calls as $call)
-                        <div class="p-3 bg-slate-50 hover:bg-white hover:shadow-md rounded-xl border border-slate-100 transition-all group">
-                            <div class="flex justify-between items-center mb-1.5">
-                                @php
-                                    $segColors = [
-                                        'Index Option' => 'bg-blue-100 text-blue-700',
-                                        'Stock Cash'   => 'bg-emerald-100 text-emerald-700',
-                                        'Future'       => 'bg-amber-100 text-amber-700',
-                                    ];
-                                    $segColor = $segColors[$call->segment] ?? 'bg-indigo-100 text-indigo-700';
-                                @endphp
-                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full {{ $segColor }}">{{ $call->segment }}</span>
-                                <span class="text-[10px] text-slate-400">{{ $call->created_at->diffForHumans() }}</span>
-                            </div>
-                            <p class="text-xs font-bold text-slate-800 line-clamp-2 leading-relaxed">{{ $call->call_text }}</p>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-[10px] text-slate-400">By {{ $call->user->name }}</span>
-                                <a href="{{ route('advisory-calls.show', $call) }}" class="text-[10px] font-bold text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">Details â†’</a>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="text-center py-8">
-                            <p class="text-slate-400 text-sm">No active market calls right now.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-            <!-- Today's Follow-ups -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:col-span-2">
-                <div class="flex items-center justify-between mb-5">
-                    <h2 class="font-bold text-slate-900 text-base">Today's Callbacks & Follow-ups</h2>
-                    <a href="{{ route('leads.index', ['tab' => 'followup']) }}" class="text-xs font-bold text-indigo-600">View All â†’</a>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    @forelse($today_followups as $followup)
-                        <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <span class="w-2.5 h-2.5 mt-1 rounded-full bg-indigo-500 flex-shrink-0"></span>
-                            <div>
-                                <a href="{{ route('leads.show', $followup) }}" class="text-sm font-bold text-slate-900 hover:text-indigo-600">{{ $followup->name }} <span class="text-xs font-normal text-slate-500 ml-1">({{ $followup->mobile }})</span></a>
-                                <p class="text-xs font-bold text-slate-500 mt-0.5">Time: <span class="text-indigo-600">{{ $followup->next_follow_up ? $followup->next_follow_up->format('h:i A') : 'N/A' }}</span> <span class="text-slate-400 font-normal ml-1">Â· {{ $followup->status }}</span></p>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="col-span-2 text-center py-6">
-                            <p class="text-sm text-slate-400">No callbacks or follow-ups scheduled for today.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-        @elseif($role === 'Manager')
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             MANAGER DASHBOARD
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Team Members</p>
-                <p class="text-3xl font-black text-slate-900">{{ $stats['total_team_members'] }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Daily Revenue</p>
-                <p class="text-3xl font-black text-slate-900">INR {{ number_format($stats['daily_revenue']) }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Trials Running</p>
-                <p class="text-3xl font-black text-slate-900">{{ $stats['trials_running'] }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Pending Payments</p>
-                <p class="text-3xl font-black text-slate-900">{{ $stats['pending_payments'] }}</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <h2 class="font-bold text-slate-900 text-base mb-5">Agent Leaderboard</h2>
-                <div class="space-y-3">
-                    @foreach($agent_performance as $index => $agent)
-                        <div class="flex items-center gap-3 p-3 rounded-xl {{ $index === 0 ? 'bg-yellow-50 border border-yellow-100' : 'bg-slate-50' }}">
-                            <span class="font-black text-slate-400 w-5 text-sm">#{{ $index + 1 }}</span>
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">{{ substr($agent->name, 0, 1) }}</div>
-                            <div class="flex-1"><p class="font-bold text-slate-900 text-sm">{{ $agent->name }}</p><p class="text-xs text-slate-400">{{ $agent->active_leads }} Active Leads</p></div>
-                            <p class="font-black text-indigo-600 text-sm">INR {{ number_format($agent->revenue) }}</p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <h2 class="font-bold text-rose-600 text-base mb-5">Escalations &amp; Complaints</h2>
-                <div class="space-y-3">
-                    @forelse($escalations as $esc)
-                        <div class="p-4 rounded-xl bg-rose-50 border border-rose-100">
-                            <div class="flex justify-between mb-1"><p class="font-bold text-rose-900">{{ $esc->name }}</p><span class="text-xs bg-white px-2 py-0.5 rounded text-rose-600 font-bold">Escalated</span></div>
-                            <p class="text-sm text-rose-700 mb-2">Assigned to: {{ $esc->assignee->name ?? 'Unassigned' }}</p>
-                            <a href="{{ route('leads.show', $esc) }}" class="text-xs font-bold underline text-rose-800">Resolve Issue â†’</a>
-                        </div>
-                    @empty
-                        <div class="text-center py-8"><p class="text-slate-400 text-sm">âœ… No active escalations.</p></div>
-                    @endforelse
-                </div>
-            </div>
-            <!-- Today's Follow-ups -->
-            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:col-span-2">
-                <div class="flex items-center justify-between mb-5">
-                    <h2 class="font-bold text-slate-900 text-base">Today's Callbacks & Follow-ups</h2>
-                    <a href="{{ route('leads.index', ['tab' => 'followup']) }}" class="text-xs font-bold text-indigo-600">View All â†’</a>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    @forelse($today_followups as $followup)
-                        <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <span class="w-2.5 h-2.5 mt-1 rounded-full bg-indigo-500 flex-shrink-0"></span>
-                            <div>
-                                <a href="{{ route('leads.show', $followup) }}" class="text-sm font-bold text-slate-900 hover:text-indigo-600">{{ $followup->name }} <span class="text-xs font-normal text-slate-500 ml-1">({{ $followup->mobile }})</span></a>
-                                <p class="text-xs font-bold text-slate-500 mt-0.5">Time: <span class="text-indigo-600">{{ $followup->next_follow_up ? $followup->next_follow_up->format('h:i A') : 'N/A' }}</span> <span class="text-slate-400 font-normal ml-1">Â· {{ $followup->status }}</span></p>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="col-span-2 text-center py-6">
-                            <p class="text-sm text-slate-400">No callbacks or follow-ups scheduled for today.</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-
-        @elseif($role === 'BA' || $role === 'SBA')
-        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-             BA / SBA DASHBOARD
-        â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
-        @if(isset($pending_training) && $pending_training)
-            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 shadow-sm flex items-center justify-between animate-pulse-slow">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                        <span class="text-2xl">ðŸš¨</span>
-                    </div>
-                    <div>
-                        <h3 class="text-rose-900 font-black text-lg">Mandatory Training Pending</h3>
-                        <p class="text-rose-700 text-sm mt-0.5">Please complete: <span class="font-bold">{{ $pending_training->title }}</span></p>
-                        <p class="text-rose-600 text-xs mt-1 font-medium">Access to leads may be blocked until completed.</p>
-                    </div>
-                </div>
-                <a href="{{ route('agent.learning.index') }}" class="px-5 py-2.5 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 hover:shadow-md transition-all whitespace-nowrap">
-                    Start Learning Now
-                </a>
-            </div>
-        @endif
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assigned Total</p>
-                <p class="text-3xl font-black text-slate-900">{{ $stats['assigned_total'] ?? 0 }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Assigned Today</p>
-                <p class="text-3xl font-black text-blue-600">{{ $stats['assigned_today'] ?? 0 }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Calls Today</p>
-                <p class="text-3xl font-black text-emerald-600">{{ $stats['calls_today'] ?? 0 }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Follow-ups Due</p>
-                <p class="text-3xl font-black text-amber-600">{{ $stats['followups_due'] ?? 0 }}</p>
-            </div>
-            <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Paid Approved</p>
-                <p class="text-3xl font-black text-indigo-600">{{ $stats['paid_approved'] ?? 0 }}</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Priority Leads -->
-            <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <div class="flex justify-between items-center mb-5">
-                    <h2 class="font-bold text-slate-900 text-base">My Priority Leads</h2>
-                    <a href="{{ route('leads.index') }}" class="text-xs font-bold text-indigo-600">View All â†’</a>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-[11px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                                <th class="pb-3 text-left">Client</th>
-                                <th class="pb-3 text-left">Status</th>
-                                <th class="pb-3 text-left">Follow-up</th>
-                                <th class="pb-3 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-50">
-                            @forelse($my_leads as $lead)
-                                <tr class="hover:bg-slate-50 transition-colors">
-                                    <td class="py-3">
-                                        <p class="font-bold text-slate-900">{{ $lead->name }}</p>
-                                        <p class="text-xs text-slate-400">{{ $lead->mobile }}</p>
-                                    </td>
-                                    <td class="py-3">
-                                        <span class="px-2 py-1 rounded-full text-xs font-bold {{ $lead->status === 'Paid Client' ? 'bg-emerald-100 text-emerald-700' : ($lead->status === 'Free Trial' ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-600') }}">{{ $lead->status }}</span>
-                                    </td>
-                                    <td class="py-3 text-xs text-slate-600">{{ $lead->next_follow_up ? $lead->next_follow_up->format('d M h:i A') : 'â€”' }}</td>
-                                    <td class="py-3 text-right">
-                                        <a href="{{ route('leads.show', $lead) }}" class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold hover:bg-indigo-100 transition-colors">Open</a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="4" class="text-center py-8 text-slate-400 text-sm">No priority leads found.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Side Widgets -->
-            <div class="space-y-5">
-                <!-- My Revenue Card -->
-                <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 text-white">
-                    <p class="text-xs font-bold uppercase tracking-widest text-indigo-200 mb-2">My Revenue</p>
-                    <p class="text-4xl font-black">INR {{ number_format($stats['revenue'] ?? 0) }}</p>
-                    <p class="text-xs text-indigo-300 mt-1 uppercase tracking-widest">Approved Sales</p>
-                </div>
-
-                <!-- Target Progress -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-slate-900 text-sm">Personal Target</h3>
-                        <span class="text-xs font-black text-indigo-600">{{ $target_progress['percentage'] }}%</span>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div class="bg-indigo-500 h-full rounded-full transition-all duration-700" style="width: {{ min(100, $target_progress['percentage']) }}%"></div>
-                    </div>
-                    <div class="flex justify-between mt-2 text-[11px] text-slate-400">
-                        <span>INR {{ number_format($target_progress['achieved']) }}</span>
-                        <span>Goal: INR {{ number_format($target_progress['amount']) }}</span>
-                    </div>
-                </div>
-
-                <!-- Today's Follow-ups -->
-                <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                    <h3 class="font-bold text-slate-900 text-sm mb-3">Today's Calls & Follow-ups</h3>
-                    <div class="space-y-3">
-                        @forelse($today_followups as $followup)
-                            <div class="flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                                <span class="w-2 h-2 mt-1.5 rounded-full {{ $followup->status === 'Call Back' ? 'bg-blue-400' : 'bg-purple-400' }} flex-shrink-0"></span>
-                                <div class="flex-1 min-w-0">
-                                    <a href="{{ route('leads.show', $followup) }}" class="text-sm font-bold text-slate-900 hover:text-indigo-600 block truncate">{{ $followup->name }}</a>
-                                    <div class="flex justify-between items-center mt-0.5">
-                                        <p class="text-[10px] uppercase font-black text-slate-400 tracking-wider">{{ $followup->status }}</p>
-                                        <p class="text-xs font-bold text-indigo-600">{{ $followup->next_follow_up ? $followup->next_follow_up->format('h:i A') : 'No time' }}</p>
+                        <div class="flex-1 p-6 space-y-6">
+                            @if(isset($target_progress))
+                            <div class="flex flex-col items-center relative text-center">
+                                <!-- SVG Circular Gauge -->
+                                <div class="relative w-28 h-28 flex items-center justify-center">
+                                    <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                        <circle cx="50" cy="50" r="40" stroke="#F3F4F6" stroke-width="8" fill="none" />
+                                        <?php
+                                            $dashArray = 251.2;
+                                            $percentage = min(100, max(0, $target_progress['percentage']));
+                                            $dashOffset = $dashArray - ($dashArray * $percentage) / 100;
+                                        ?>
+                                        <circle cx="50" cy="50" r="40" stroke="url(#progressGradientAdmin)" stroke-width="8" fill="none" 
+                                                stroke-linecap="round" 
+                                                stroke-dasharray="{{ $dashArray }}" 
+                                                stroke-dashoffset="{{ $dashOffset }}" 
+                                                class="transition-all duration-1000 ease-out" />
+                                        <defs>
+                                            <linearGradient id="progressGradientAdmin" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="#4F46E5" />
+                                                <stop offset="100%" stop-color="#10B981" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                        <span class="text-2xl font-black font-mono text-[#111827]">{{ $target_progress['percentage'] }}<span class="text-xs text-gray-400">%</span></span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 w-full flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <div class="text-left">
+                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Achieved</p>
+                                        <p class="text-xs font-bold text-emerald-600">INR {{ number_format($target_progress['achieved']) }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Goal</p>
+                                        <p class="text-xs font-bold text-slate-700">INR {{ number_format($target_progress['amount']) }}</p>
                                     </div>
                                 </div>
                             </div>
-                        @empty
-                            <p class="text-sm text-slate-400 px-2">No callbacks or follow-ups scheduled today.</p>
-                        @endforelse
+                            @endif
+
+                            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-[#F3F4F6]">
+                                <div class="p-4 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6]">
+                                    <p class="text-[9px] font-black text-[#9CA3AF] uppercase tracking-widest mb-1">Conversion Rate</p>
+                                    <p class="text-xl font-black text-[#111827]">14.2%</p>
+                                </div>
+                                <div class="p-4 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6]">
+                                    <p class="text-[9px] font-black text-[#9CA3AF] uppercase tracking-widest mb-1">Avg. Ticket Size</p>
+                                    <p class="text-xl font-black text-[#111827]">INR 8,420</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI STRIP (Admin) -->
+                @php
+                    $adminKpis = [
+                        ['label' => 'Total Leads', 'value' => $stats['total_leads'] ?? 0],
+                        ['label' => 'Paid Clients', 'value' => $stats['paid_clients'] ?? 0],
+                        ['label' => 'Revenue (' . ucfirst(request('period', 'week')) . ')', 'value' => 'INR ' . number_format($stats['monthly_revenue'] ?? 0), 'success' => true],
+                        ['label' => 'Pending Approvals', 'value' => $stats['pending_approvals'] ?? 0, 'alert' => ($stats['pending_approvals'] ?? 0) > 0],
+                        ['label' => 'System Status', 'value' => 'Live', 'badge' => true],
+                    ];
+                @endphp
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-6">
+                    @foreach($adminKpis as $kpi)
+                        <div class="bg-white p-5 rounded-2xl border border-[#E5E7EB] shadow-sm hover:border-[#4F46E5] transition-colors group cursor-default">
+                            <p class="text-[10px] font-black text-[#9CA3AF] uppercase tracking-widest mb-2">{{ $kpi['label'] }}</p>
+                            <div class="flex items-center justify-between">
+                                <p class="text-lg font-black {{ isset($kpi['success']) && $kpi['success'] ? 'text-[#10B981]' : 'text-[#111827]' }}">
+                                    {{ $kpi['value'] }}
+                                </p>
+                                @if(isset($kpi['trend']))
+                                    <span class="text-[10px] font-black {{ strpos($kpi['trend'], '+') !== false ? 'text-[#10B981]' : 'text-[#EF4444]' }}">
+                                        {{ $kpi['trend'] }}
+                                    </span>
+                                @endif
+                                @if(isset($kpi['badge']) && $kpi['badge'])
+                                    <span class="flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- BOTTOM SECTION (Grid for Approvals, Feed, Followups) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Left: Approvals + Feed -->
+                    <div class="lg:col-span-8 space-y-8">
+                        <!-- Pending Approvals -->
+                        <div class="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-[#F3F4F6] flex justify-between items-center bg-white">
+                                <h3 class="font-black text-sm text-[#111827]">Pending Approvals</h3>
+                                <a href="{{ route('payments.index') }}" class="text-[10px] font-black text-[#4F46E5] uppercase tracking-widest hover:underline">Manage All</a>
+                            </div>
+                            <div class="divide-y divide-[#F3F4F6]">
+                                @forelse([] as $pay) {{-- Mocked for view --}}
+                                @empty
+                                    <div class="p-10 text-center">
+                                        <p class="text-[10px] font-black text-[#9CA3AF] uppercase tracking-widest mb-1">All clear</p>
+                                        <p class="text-xs text-[#6B7280]">No pending payment approvals at the moment.</p>
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <!-- Live Feed -->
+                        <div class="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-[#F3F4F6] bg-white">
+                                <h3 class="font-black text-sm text-[#111827] flex items-center gap-2">
+                                    Live Feed <span class="flex h-2 w-2 bg-rose-500 rounded-full animate-ping"></span>
+                                </h3>
+                            </div>
+                            <div class="p-6 space-y-6">
+                                @foreach($latest_calls->take(3) as $call)
+                                    <div class="flex gap-4 group">
+                                        <div class="relative">
+                                            <div class="w-2.5 h-2.5 rounded-full bg-[#4F46E5] ring-4 ring-indigo-50 mt-1"></div>
+                                            <div class="absolute top-4 left-1.25 w-px h-full bg-[#F3F4F6] group-last:hidden"></div>
+                                        </div>
+                                        <div class="flex-1 pb-6 group-last:pb-0">
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-[10px] font-black text-[#4F46E5] uppercase tracking-widest">{{ $call->segment }}</span>
+                                                <span class="text-[10px] font-bold text-[#9CA3AF]">{{ $call->created_at->diffForHumans() }}</span>
+                                            </div>
+                                            <p class="text-xs font-medium text-[#374151] leading-relaxed">
+                                                {{ $call->call_text }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: AI Dialer / Smart Feed -->
+                    <div class="lg:col-span-4 bg-white rounded-2xl border border-[#E5E7EB] shadow-sm overflow-hidden sticky top-24">
+                        <div class="p-6 border-b border-[#F3F4F6] bg-white flex justify-between items-center">
+                            <h3 class="font-black text-sm text-[#111827] flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> AI Dialer
+                            </h3>
+                            <span class="text-[9px] font-black text-white bg-indigo-600 px-2 py-0.5 rounded-full uppercase tracking-tighter pulse-dot">Active</span>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <!-- Currently Calling Mockup -->
+                            <div class="p-4 rounded-2xl bg-slate-900 text-white shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform">
+                                <div class="absolute -right-4 -bottom-4 w-20 h-20 bg-indigo-500/20 rounded-full blur-xl"></div>
+                                <div class="flex items-center gap-4 relative z-10">
+                                    <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center animate-pulse">
+                                        <i data-lucide="phone-outgoing" class="w-6 h-6 text-emerald-400"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-black text-indigo-300 uppercase tracking-widest">Currently Calling</p>
+                                        <p class="text-sm font-black text-white">Rahul Sharma</p>
+                                        <p class="text-[10px] text-slate-400">Dialing mobile: +91 98XXX XXX01</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4 flex gap-2">
+                                    <button class="flex-1 py-2 bg-emerald-500 text-[10px] font-black rounded-lg hover:bg-emerald-600 transition-colors uppercase">Mute</button>
+                                    <button class="flex-1 py-2 bg-rose-500 text-[10px] font-black rounded-lg hover:bg-rose-600 transition-colors uppercase">Hang Up</button>
+                                </div>
+                            </div>
+
+                            <div class="p-4 rounded-xl bg-indigo-50/50 border border-indigo-100 flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#4F46E5] shadow-sm">
+                                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-black text-[#111827]">{{ $today_followups->count() }} Calls in Queue</p>
+                                    <p class="text-[10px] font-bold text-[#4F46E5] uppercase tracking-widest">Smart-Route Active</p>
+                                </div>
+                            </div>
+                            <button class="w-full py-4 bg-[#4F46E5] text-white rounded-2xl text-[11px] font-black shadow-lg shadow-indigo-100 hover:bg-[#4338CA] transition-all transform hover:-translate-y-0.5 uppercase tracking-widest">
+                                Open Full Dialer Panel
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+
+        @else
+            <!-- ───────────── EMPLOYEE VIEW ───────────── -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Left Column (KPIs + Priority Leads) -->
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <!-- Employee KPI Strip -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        @php
+                            $personalKpis = [
+                                ['label' => 'Assigned Total', 'value' => $stats['assigned_total'] ?? 0],
+                                ['label' => 'Assigned Today', 'value' => $stats['assigned_today'] ?? 0],
+                                ['label' => 'Calls Today', 'value' => $stats['calls_today'] ?? 0, 'alert' => (($stats['calls_today'] ?? 0) == 0)],
+                                ['label' => 'Follow-ups Due', 'value' => $stats['followups_due'] ?? 0, 'badge' => ($stats['followups_due'] ?? 0) > 0],
+                                ['label' => 'Paid Approved', 'value' => $stats['paid_approved'] ?? 0, 'success' => true],
+                            ];
+                        @endphp
+                        @foreach($personalKpis as $pkpi)
+                            <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-sm">
+                                <p class="text-[9px] font-black text-[#9CA3AF] uppercase tracking-widest mb-1">{{ $pkpi['label'] }}</p>
+                                <div class="flex items-center gap-2">
+                                    <p class="text-2xl font-black {{ isset($pkpi['success']) && $pkpi['success'] ? 'text-[#10B981]' : (isset($pkpi['alert']) && $pkpi['alert'] ? 'text-amber-500' : 'text-[#111827]') }}">
+                                        {{ $pkpi['value'] }}
+                                    </p>
+                                    @if(isset($pkpi['badge']) && $pkpi['badge'])
+                                        <span class="px-1.5 py-0.5 rounded bg-rose-50 text-rose-600 text-[10px] font-black">!</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <!-- LEADERBOARD ROW (Employee) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Live Leaderboard -->
+                        <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col">
+                            <div class="p-4 border-b border-[#F3F4F6] flex items-center justify-between">
+                                <h3 class="font-bold text-sm text-[#111827]">Live Leaderboard</h3>
+                                <div class="flex items-center gap-1.5 text-[9px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-0.5 rounded-full">
+                                    <span class="w-1.5 h-1.5 bg-[#10B981] rounded-full"></span> LIVE
+                                </div>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                @foreach($leaderboard->take(4) as $idx => $agent)
+                                    @php
+                                        $isMe = ($agent->id === Auth::id());
+                                        $maxRev = $leaderboard->max('payments_sum_amount') ?: 1;
+                                    @endphp
+                                    <div class="flex items-center gap-3 p-2 rounded-lg {{ $isMe ? 'bg-[#EEF2FF] border border-[#4F46E5]/10' : '' }}">
+                                        <div class="w-8 h-8 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center text-[10px] font-bold">
+                                            {{ substr($agent->name, 0, 1) }}
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-xs font-bold text-[#111827] truncate">{{ $agent->name }} {{ $isMe ? '(You)' : '' }}</p>
+                                            <div class="w-full bg-[#F3F4F6] rounded-full h-1 mt-1">
+                                                <div class="bg-[#4F46E5] h-full rounded-full" style="width: {{ ($agent->payments_sum_amount / $maxRev) * 100 }}%"></div>
+                                            </div>
+                                        </div>
+                                        <span class="text-[10px] font-mono font-bold text-[#4F46E5]">INR {{ number_format($agent->payments_sum_amount) }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                         <!-- Today's Follow-ups (Personal) -->
+                        <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden flex flex-col">
+                            <div class="p-4 border-b border-[#F3F4F6]">
+                                <h3 class="font-bold text-sm text-[#111827]">Upcoming Follow-ups</h3>
+                            </div>
+                            <div class="p-4 space-y-3 flex-1 overflow-y-auto max-h-[300px]">
+                                @forelse($today_followups as $tf)
+                                    <div class="p-3 border border-[#F3F4F6] rounded-xl flex justify-between items-center hover:bg-[#F9FAFB] transition-colors cursor-pointer group" onclick="window.location='{{ route('leads.show', $tf) }}'">
+                                        <div>
+                                            <p class="text-xs font-black text-[#111827] group-hover:text-[#4F46E5] transition-colors">{{ $tf->name }}</p>
+                                            <p class="text-[10px] text-[#9CA3AF]">{{ $tf->status }}</p>
+                                        </div>
+                                        <span class="text-[11px] font-bold text-[#4F46E5]">{{ $tf->next_follow_up ? $tf->next_follow_up->format('h:i A') : '—' }}</span>
+                                    </div>
+                                @empty
+                                    <div class="py-10 text-center text-[#9CA3AF] text-xs font-bold uppercase">No tasks due</div>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Priority Leads Table -->
+                    <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm">
+                        <div class="p-5 border-b border-[#F3F4F6] flex justify-between items-center">
+                            <h3 class="font-bold text-[#111827]">My Priority Leads</h3>
+                            <a href="{{ route('leads.index') }}" class="text-xs font-bold text-[#4F46E5]">View All →</a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="text-[10px] font-black text-[#9CA3AF] uppercase tracking-widest border-b border-[#F3F4F6]">
+                                        <th class="px-6 py-4 text-left">Client</th>
+                                        <th class="px-6 py-4 text-left">Status</th>
+                                        <th class="px-6 py-4 text-left">Follow-up</th>
+                                        <th class="px-6 py-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-[#F3F4F6]">
+                                    @forelse($my_leads->take(6) as $lead)
+                                        <tr class="group hover:bg-[#F9FAFB] transition-colors">
+                                            <td class="px-6 py-4">
+                                                <p class="text-sm font-bold text-[#111827]">{{ $lead->name }}</p>
+                                                <p class="text-[11px] text-[#9CA3AF]">{{ $lead->mobile }}</p>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase
+                                                    {{ $lead->status === 'Paid Client' ? 'bg-[#ECFDF5] text-[#10B981]' : 
+                                                       ($lead->status === 'Free Trial' ? 'bg-[#E0F2FE] text-[#0284C7]' : 'bg-[#F3F4F6] text-[#6B7280]') }}">
+                                                    {{ $lead->status }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 text-[11px] font-medium text-[#111827]">
+                                                {{ $lead->next_follow_up ? $lead->next_follow_up->format('d M, h:i A') : '—' }}
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <a href="{{ route('leads.show', $lead) }}" class="text-[11px] font-bold text-[#4F46E5] hover:underline">Open Profile</a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="px-6 py-10 text-center text-[#9CA3AF] text-sm font-medium">No priority leads found.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column (Hero Card + Progress) -->
+                <div class="space-y-8">
+                    <!-- MY REVENUE HERO CARD -->
+                    <div class="bg-gradient-to-br from-[#4F46E5] to-[#7C3AED] rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
+                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <div class="relative z-10">
+                            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-100/70 mb-4">My Revenue</p>
+                            <h3 class="text-4xl font-black font-mono mb-2">INR {{ number_format($stats['revenue'] ?? 0) }}</h3>
+                            <p class="text-xs font-bold text-indigo-100/50 uppercase tracking-widest leading-relaxed">
+                                Approved Sales <br> for current period
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Target Progress Widget -->
+                    <div class="bg-white rounded-2xl border border-[#E5E7EB] shadow-sm p-6 flex flex-col items-center relative overflow-hidden text-center">
+                        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-400 to-indigo-500"></div>
+                        <h4 class="font-black text-sm text-[#111827] w-full text-left mb-6 uppercase tracking-widest text-[10px] text-slate-400">Target Progress</h4>
+                        
+                        <!-- SVG Circular Gauge -->
+                        <div class="relative w-36 h-36 flex items-center justify-center">
+                            <!-- Background Circle -->
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="40" stroke="#F3F4F6" stroke-width="8" fill="none" />
+                                <?php
+                                    $dashArray = 251.2; // 2 * pi * 40
+                                    $percentage = min(100, max(0, $target_progress['percentage']));
+                                    $dashOffset = $dashArray - ($dashArray * $percentage) / 100;
+                                ?>
+                                <circle cx="50" cy="50" r="40" stroke="url(#progressGradient)" stroke-width="8" fill="none" 
+                                        stroke-linecap="round" 
+                                        stroke-dasharray="{{ $dashArray }}" 
+                                        stroke-dashoffset="{{ $dashOffset }}" 
+                                        class="transition-all duration-1000 ease-out" />
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#4F46E5" />
+                                        <stop offset="100%" stop-color="#10B981" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            
+                            <!-- Inner Percentage Text -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-black font-mono text-[#111827]">{{ $target_progress['percentage'] }}<span class="text-sm text-gray-400">%</span></span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 w-full flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div class="text-left">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Achieved</p>
+                                <p class="text-sm font-bold text-emerald-600">INR {{ number_format($target_progress['achieved']) }}</p>
+                            </div>
+                            <div class="h-6 w-px bg-slate-200"></div>
+                            <div class="text-right">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Goal</p>
+                                <p class="text-sm font-bold text-slate-700">INR {{ number_format($target_progress['amount']) }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Alerts / Notifications -->
+                    <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-6">
+                        <h4 class="font-bold text-sm text-[#111827] mb-4">System Alerts</h4>
+                        <div class="space-y-4">
+                            <div class="flex gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span>
+                                <p class="text-xs text-[#4B5563] font-medium leading-relaxed">New market call released for <span class="font-bold text-[#111827]">Nifty Bank</span>. Check advisory.</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
+                                <p class="text-xs text-[#4B5563] font-medium leading-relaxed">You have <span class="font-bold text-[#111827]">3 follow-ups</span> due in the next hour.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
         @endif
 
-    </div>    </div>
+    </div>
 
-    <script>
-    // â”€â”€â”€ LIVE LEADERBOARD POLLING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const LEADERBOARD_URL = "{{ route('leaderboard.live') }}";
-    const MEDALS    = ['ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰'];
-    const BARS      = ['bg-indigo-500','bg-emerald-500','bg-amber-500','bg-rose-400','bg-slate-300'];
-    const RANK_CLR  = ['text-yellow-500','text-slate-400','text-amber-600','text-slate-300'];
+    <style>
+        .font-mono { font-family: 'DM Mono', monospace !important; }
+        .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    </style>
 
-    function formatINR(n) {
-        return 'INR ' + Number(n).toLocaleString('en-IN');
-    }
-
-    function escapeHtml(str) {
-        return String(str).replace(/[&<>"']/g, (ch) => {
-            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch];
-        });
-    }
-
-    function safeNumber(val, fallback = 0) {
-        const n = Number(val);
-        return Number.isFinite(n) ? n : fallback;
-    }
-
-    function buildLeaderboardRow(agent, i) {
-        const medal    = MEDALS[i] ?? '#' + (i + 1);
-        const barColor = BARS[i] ?? 'bg-slate-200';
-        const rankClr  = RANK_CLR[i] ?? 'text-slate-300';
-        const pct      = Math.max(0, Math.min(100, safeNumber(agent.pct, 0)));
-        const name     = escapeHtml(agent.name || '');
-        const initials = escapeHtml(agent.initials || '');
-        const calls    = safeNumber(agent.calls, 0);
-        const revenue  = safeNumber(agent.revenue, 0);
-
-        return `
-        <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-            <div class="w-6 text-center font-black text-sm ${rankClr}">${medal}</div>
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                ${initials}
-            </div>
-            <div class="flex-1 min-w-0 pr-2">
-                <div class="flex items-center justify-between">
-                    <p class="text-sm font-bold text-slate-900 truncate">${name}</p>
-                    <span class="text-[10px] text-slate-400 font-mono ml-2 flex-shrink-0">${calls} calls</span>
-                </div>
-                <div class="mt-1.5 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                    <div class="${barColor} h-full rounded-full transition-all duration-700" style="width:${pct}%"></div>
-                </div>
-            </div>
-            <div class="text-sm font-black text-slate-700 flex-shrink-0">${formatINR(revenue)}</div>
-        </div>`;
-    }
-
-        
-    
-    function fetchLeaderboard(period, targetBodyId, emptyMessage) {
-        fetch(`${LEADERBOARD_URL}?period=${period}`)
-            .then(r => {
-                if (!r.ok) throw new Error('Fetch failed');
-                return r.json();
-            })
-            .then(data => {
-                const body = document.getElementById(targetBodyId);
-                if (!body) return;
-
-                if (!data.leaderboard || data.leaderboard.length === 0) {
-                    body.innerHTML = `<div class="text-center py-10">
-                        <p class="text-slate-400 text-sm">${escapeHtml(emptyMessage)}</p>
-                        <p class="text-xs text-slate-300 mt-1">Be the first on the board!</p>
-                    </div>`;
-                    return;
-                }
-
-                body.innerHTML = data.leaderboard.map((agent, i) => buildLeaderboardRow(agent, i)).join('');
-            })
-            .catch(e => console.error('Leaderboard error:', e));
-    }
-
-    // Initialize all periods
-    ['today', 'week', 'month', 'ytd'].forEach(p => {
-        const targetId = `leaderboard-${p}-body`;
-        const msg = (p === 'today') ? 'No activity registered today yet.' : 'No leaderboard data for this period.';
-        fetchLeaderboard(p, targetId, msg);
-    });
-
-    // ══════════════════════════════════════════════
-    // SALES TIPS LOGIC (Q&A FORMAT)
-    // ══════════════════════════════════════════════
-    (function() {
-        function getTipIndex() {
-            const now = new Date();
-            const hourStamp = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + '-' + now.getHours();
-            let hash = 0;
-            for (let i = 0; i < hourStamp.length; i++) {
-                hash = ((hash << 5) - hash) + hourStamp.charCodeAt(i);
-                hash |= 0;
-            }
-            return Math.abs(hash) % salesTips.length;
-        }
-
-        function getMinutesUntilNextChange() {
-            return 60 - new Date().getMinutes();
-        }
-
-        let currentIdx = -1;
-
-        function renderTip() {
-            const idx = getTipIndex();
-            if (idx === currentIdx) return;
-            currentIdx = idx;
-
-            const questionEl = document.getElementById('tip-question');
-            const strategyEl = document.getElementById('tip-strategy');
-            const counterEl = document.getElementById('tip-counter');
-            const strategyContainer = document.getElementById('tip-strategy-container');
-            
-            if (!questionEl || !strategyEl) return;
-
-            const tip = salesTips[idx];
-
-            [questionEl, strategyContainer].forEach(el => {
-                if (el) {
-                    el.classList.remove('tip-flip-animate');
-                    void el.offsetWidth;
-                    el.classList.add('tip-flip-animate');
-                }
-            });
-
-            questionEl.textContent = tip.question;
-            strategyEl.textContent = tip.strategy;
-            if (counterEl) counterEl.textContent = '#' + (idx + 1) + '/' + salesTips.length;
-        }
-
-        function updateTimer() {
-            const el = document.getElementById('tip-next-change');
-            if (el) {
-                const mins = getMinutesUntilNextChange();
-                el.textContent = 'Next in ' + mins + 'm';
-            }
-        }
-
-        renderTip();
-        updateTimer();
-
-        setInterval(function() {
-            renderTip();
-            updateTimer();
-        }, 15000);
-    })();
-
-    function copySalesTip() {
-        const questionEl = document.getElementById('tip-question');
-        const strategyEl = document.getElementById('tip-strategy');
-        const labelEl = document.getElementById('tip-copy-label');
-        const iconEl = document.getElementById('tip-copy-icon');
-        
-        if (!questionEl || !strategyEl) return;
-
-        const text = `Q: ${questionEl.textContent}\nStrategy: ${strategyEl.textContent}`;
-        
-        navigator.clipboard.writeText(text).then(function() {
-            labelEl.textContent = 'Copied!';
-            iconEl.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>';
-            setTimeout(function() {
-                labelEl.textContent = 'Copy';
-                iconEl.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>';
-            }, 2000);
-        });
-    }
-    </script>
 </x-app-layout>

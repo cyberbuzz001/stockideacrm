@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>StockIdea CRM | AI-Powered Sales</title>
+    <title>{{ $company_name }} CRM | AI-Powered Sales</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,600,900&display=swap" rel="stylesheet" />
@@ -35,8 +35,8 @@
 
         <div class="z-10 text-center px-4">
             <div class="mb-8 inline-block">
-                <div class="text-5xl md:text-7xl font-black text-indigo-600 tracking-tighter drop-shadow-sm">
-                    STOCK<span class="text-slate-900">IDEA</span>
+                <div class="text-5xl md:text-7xl font-black text-indigo-600 tracking-tighter drop-shadow-sm uppercase">
+                    {{ $company_name }}
                 </div>
             </div>
 
@@ -94,7 +94,7 @@
 
         <!-- Footer -->
         <div class="mt-auto py-8 text-slate-400 text-xs font-medium">
-            &copy; {{ date('Y') }} StockIdea Financial Services. All rights reserved.
+            &copy; {{ date('Y') }} {{ $company_name }}. All rights reserved.
         </div>
     </div>
 

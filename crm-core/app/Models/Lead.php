@@ -78,8 +78,21 @@ class Lead extends Model
         'aadhaar_number',
     ];
 
-    protected $appends = ['completion_percentage'];
+    protected $appends = ['completion_percentage', 'is_stale'];
 
+    /**
+     * Determine if a lead is "stale" (no activity for > 3 days)
+     */
+    public function getIsStaleAttribute()
+    {
+        $closedStatuses = ['Paid Client', 'Lost', 'Junk', 'Not Interested'];
+        if (in_array($this->status, $closedStatuses)) {
+            return false;
+        }
+
+        $lastTouched = $this->last_seen_at ?? $this->updated_at;
+        return $lastTouched && $lastTouched->diffInDays(now()) >= 3;
+    }
     /**
      * Get Profile Completion Percentage
      */
