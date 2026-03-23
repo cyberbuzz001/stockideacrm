@@ -169,7 +169,7 @@
                                                 class="font-bold text-indigo-600 hover:underline inline-flex items-center gap-1">{{ $lead?->mobile ?? 'N/A' }}</a>
                                             @if($lead && $lead->mobile)
                                                 @php
-                                                    $waMessage = urlencode("Hi {$lead->name}, this is " . auth()->user()->name . " from StockIdea. I'm reaching out regarding your recent inquiry. How can I help you today?");
+                                                    $waMessage = urlencode("Hi {$lead->name}, this is " . auth()->user()->name . " from {$company_name}. I'm reaching out regarding your recent inquiry. How can I help you today?");
                                                 @endphp
                                                 <a href="https://wa.me/91{{ preg_replace('/[^0-9]/', '', $lead->mobile) }}?text={{ $waMessage }}" target="_blank" class="w-6 h-6 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors shadow-sm" title="WhatsApp 1-Click">
                                                     <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.549 4.131 1.594 5.928L0 24l6.233-1.576c1.728 1 3.682 1.536 5.765 1.536 6.638 0 12.022-5.382 12.022-12.031zM12.031 22.022c-1.802 0-3.564-.485-5.111-1.402l-.366-.217-3.793.961.981-3.69-.239-.379c-.997-1.591-1.523-3.425-1.523-5.282 0-5.558 4.524-10.082 10.082-10.082s10.081 4.524 10.081 10.082c-.001 5.558-4.525 10.081-10.082 10.081zm5.534-7.555c-.303-.152-1.795-.886-2.073-.988-.278-.103-.48-.152-.683.153-.203.303-.783.987-.959 1.189-.176.202-.352.227-.655.076-1.532-.765-2.791-1.638-3.901-3.535-.114-.194-.012-.303.141-.453.138-.135.303-.353.454-.531.152-.178.202-.303.303-.505.101-.202.051-.379-.025-.53-.076-.152-.682-1.644-.935-2.253-.247-.591-.497-.509-.682-.519-.176-.008-.379-.011-.581-.011s-.53.076-.808.379c-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.086 2.932 1.238 3.134.152.202 2.138 3.264 5.176 4.576.721.312 1.284.498 1.725.638.723.23 1.382.197 1.898.119.579-.088 1.795-.733 2.047-1.44.253-.708.253-1.315.177-1.442-.075-.126-.277-.201-.58-.352z"/></svg>
@@ -211,6 +211,22 @@
                                     Open Dashboard
                                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                                 </a>
+                            </section>
+
+                            <!-- AI Qualification Bot Simulator -->
+                            <section class="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl border border-indigo-400 flex items-center justify-between text-white shadow-lg mt-6 relative overflow-hidden">
+                                <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+                                <div class="relative z-10">
+                                    <p class="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        AI Features
+                                    </p>
+                                    <h4 class="text-sm font-black">AI Lead Qualification Bot</h4>
+                                    <p class="text-[10px] text-indigo-100 mt-1 max-w-[200px]">Deploy our automated agent to chat with {{ $lead?->name }} and pre-qualify their risk appetite.</p>
+                                </div>
+                                <button onclick="document.getElementById('aiBotModal').showModal()" class="relative z-10 bg-white text-indigo-600 px-4 py-2 rounded-xl text-xs font-black shadow transition-transform hover:scale-105 flex items-center gap-2">
+                                    Deploy Bot 🤖
+                                </button>
                             </section>
                         </div>
                     </div>
@@ -335,9 +351,15 @@
                                         </button>
                                     </div>
                                 </div>
-                                <button type="submit" class="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition shadow-md">
-                                    Log Sent Message
-                                </button>
+                                <div class="mt-3 flex flex-col sm:flex-row gap-3">
+                                    <a :href="'https://wa.me/91' + leadMobile.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(messageBody)" target="_blank" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl transition shadow-md flex justify-center items-center gap-2">
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.549 4.131 1.594 5.928L0 24l6.233-1.576c1.728 1 3.682 1.536 5.765 1.536 6.638 0 12.022-5.382 12.022-12.031zM12.031 22.022c-1.802 0-3.564-.485-5.111-1.402l-.366-.217-3.793.961.981-3.69-.239-.379c-.997-1.591-1.523-3.425-1.523-5.282 0-5.558 4.524-10.082 10.082-10.082s10.081 4.524 10.081 10.082c-.001 5.558-4.525 10.081-10.082 10.081zm5.534-7.555c-.303-.152-1.795-.886-2.073-.988-.278-.103-.48-.152-.683.153-.203.303-.783.987-.959 1.189-.176.202-.352.227-.655.076-1.532-.765-2.791-1.638-3.901-3.535-.114-.194-.012-.303.141-.453.138-.135.303-.353.454-.531.152-.178.202-.303.303-.505.101-.202.051-.379-.025-.53-.076-.152-.682-1.644-.935-2.253-.247-.591-.497-.509-.682-.519-.176-.008-.379-.011-.581-.011s-.53.076-.808.379c-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.086 2.932 1.238 3.134.152.202 2.138 3.264 5.176 4.576.721.312 1.284.498 1.725.638.723.23 1.382.197 1.898.119.579-.088 1.795-.733 2.047-1.44.253-.708.253-1.315.177-1.442-.075-.126-.277-.201-.58-.352z"/></svg>
+                                        Send WhatsApp
+                                    </a>
+                                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition shadow-md">
+                                        Log Sent Message
+                                    </button>
+                                </div>
                             </form>
                         </div>
                         
@@ -575,6 +597,80 @@
         </div>
     </dialog>
 
+    <!-- AI Qualification Bot Modal -->
+    <dialog id="aiBotModal" class="p-0 rounded-2xl shadow-2xl backdrop:bg-slate-900/50 w-full max-w-2xl border-0 overflow-hidden" x-data="aiBotSimulator()">
+        <div class="h-[500px] flex flex-col bg-slate-50 relative">
+            <!-- Modal Header -->
+            <div class="p-4 bg-indigo-600 text-white flex justify-between items-center shadow-md z-10 relative">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div class="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center text-xl shadow-inner border border-indigo-400">🤖</div>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-indigo-600 rounded-full animate-pulse"></span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg leading-none">{{ $company_name }} AI</h3>
+                        <p class="text-[10px] font-black text-indigo-200 uppercase tracking-widest mt-1">Pre-Qualification Sequence</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('aiBotModal').close()" class="text-indigo-200 hover:text-white transition bg-indigo-700/50 p-2 rounded-xl">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Chat History -->
+            <div class="flex-1 p-6 overflow-y-auto w-full flex flex-col gap-4 font-sans" id="aiChatBox">
+                <template x-for="msg in messages" :key="msg.id">
+                    <div :class="msg.role === 'bot' ? 'items-start' : 'items-end'" class="flex flex-col w-full animate-fade-in-up">
+                        <div class="flex gap-2 max-w-[85%]" :class="msg.role === 'bot' ? 'flex-row' : 'flex-row-reverse justify-end'">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm text-sm" 
+                                 :class="msg.role === 'bot' ? 'bg-indigo-600 text-white' : 'bg-emerald-500 text-white'">
+                                <span x-text="msg.role === 'bot' ? '🤖' : '👤'"></span>
+                            </div>
+                            <div class="p-3 rounded-2xl text-sm shadow-sm relative group" 
+                                 :class="msg.role === 'bot' ? 'bg-white border border-slate-100 text-slate-700 rounded-tl-none' : 'bg-indigo-600 text-white rounded-tr-none'">
+                                <p x-text="msg.content" class="leading-relaxed"></p>
+                                <span class="text-[9px] opacity-50 mt-1 block absolute -bottom-4" 
+                                      :class="msg.role === 'bot' ? 'text-slate-400 left-1' : 'text-slate-500 right-1'" 
+                                      x-text="msg.time"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="isTyping" class="flex gap-2 items-start animate-fade-in">
+                    <div class="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 mt-1 shadow-sm text-sm">🤖</div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-1 min-w-[60px] h-[44px]">
+                        <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                        <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                        <span class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Area / Mock Trigger -->
+            <div class="p-4 bg-white border-t border-slate-200 shadow-sm z-10 relative">
+                <div x-show="!sequenceStarted" class="flex justify-center w-full">
+                    <button @click="startSequence()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg transition-transform hover:scale-105 flex items-center gap-2">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        Start Qualification Sequence for {{ explode(' ', $lead?->name)[0] ?? 'Lead' }}
+                    </button>
+                </div>
+                <div x-show="sequenceStarted && !qualificationComplete" class="text-center w-full">
+                    <p class="text-xs font-bold text-slate-400 animate-pulse">Running Autonomous Assessment...</p>
+                </div>
+                <div x-show="qualificationComplete" class="flex items-center justify-between w-full bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-bold">✓</div>
+                        <div>
+                            <p class="text-xs font-black text-emerald-800 uppercase tracking-widest">Assessment Complete</p>
+                            <p class="text-sm font-bold text-emerald-600">Lead Qualified: Aggressive Equity</p>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('detailsForm').submit()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition">Apply Tags to Profile</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
     <script>
         function dispositionHandler() {
             return {
@@ -666,6 +762,75 @@
                     navigator.clipboard.writeText(this.messageBody).then(() => {
                         alert('Copied to clipboard!');
                     });
+                }
+            }
+        }
+
+        function aiBotSimulator() {
+            return {
+                baseMessages: [
+                    { id: 1, role: 'bot', content: 'Initiating connection sequence...', time: 'Just now' },
+                    { id: 2, role: 'bot', content: 'Connection established via WhatsApp API.', time: 'Just now' }
+                ],
+                messages: [],
+                isTyping: false,
+                sequenceStarted: false,
+                qualificationComplete: false,
+                leadName: "{{ explode(' ', $lead?->name)[0] ?? 'there' }}",
+                
+                init() {
+                    this.messages = [...this.baseMessages];
+                },
+                
+                async startSequence() {
+                    this.sequenceStarted = true;
+                    this.isTyping = true;
+                    
+                    await this.delay(1500);
+                    this.addBotMsg(`Hi ${this.leadName}! I'm Sarah, an AI Assistant from ${this.companyName}. I see you recently showed interest in our services.`);
+                    
+                    await this.delay(2000);
+                    this.addUserMsg(`Yes, I want to know about your accurate stock picks.`);
+                    
+                    await this.delay(1800);
+                    this.addBotMsg("Great! To ensure we recommend the best advisory plan, could you confirm your typical investment capital size?");
+                    
+                    await this.delay(2500);
+                    this.addUserMsg("Around 5-10 lakhs right now.");
+                    
+                    await this.delay(1500);
+                    this.addBotMsg("Got it. And what's your primary goal? Safe long-term growth or aggressive short-term trading?");
+                    
+                    await this.delay(2000);
+                    this.addUserMsg("I want high returns, mostly options and intraday.");
+                    
+                    await this.delay(2500);
+                    this.addBotMsg("Understood. Based on a capital of 5-10L and an aggressive risk appetite for Options, you qualify for our Premium F&O Advisory package.");
+                    
+                    await this.delay(1000);
+                    this.isTyping = false;
+                    this.qualificationComplete = true;
+                },
+                
+                addBotMsg(text) {
+                    this.messages.push({ id: Date.now(), role: 'bot', content: text, time: 'Now' });
+                    this.scrollToBottom();
+                },
+                
+                addUserMsg(text) {
+                    this.messages.push({ id: Date.now(), role: 'user', content: text, time: 'Now' });
+                    this.scrollToBottom();
+                },
+                
+                scrollToBottom() {
+                    setTimeout(() => {
+                        const box = document.getElementById('aiChatBox');
+                        if (box) box.scrollTop = box.scrollHeight;
+                    }, 50);
+                },
+                
+                delay(ms) {
+                    return new Promise(res => setTimeout(res, ms));
                 }
             }
         }

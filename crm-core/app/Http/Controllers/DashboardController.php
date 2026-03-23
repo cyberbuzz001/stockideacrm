@@ -59,7 +59,33 @@ class DashboardController extends Controller
         // Latest Advisory Calls (Global Feed)
         $data['latest_calls'] = \App\Models\AdvisoryCall::with('user')->latest()->take(5)->get();
 
-        return view('dashboard', array_merge($data, ['role' => $role]));
+        // Calculate Target Progress (Role-Specific)
+        $monthYear = now()->format('Y-m');
+        if ($role === 'Admin' || $role === 'Manager') {
+            $targetAmount = 2500000; 
+            $achieved = Payment::where('status', 'Verified')->whereBetween('payment_date', [$startDate, $endDate])->sum('amount');
+            $target_progress = [
+                'amount' => $targetAmount,
+                'achieved' => $achieved,
+                'percentage' => round(($achieved / $targetAmount) * 100),
+            ];
+        } else {
+            $target = \App\Models\UserTarget::where('user_id', $user->id)->where('month_year', $monthYear)->first();
+            $achieved = Payment::whereHas('lead', fn($q) => $q->where('assigned_to', $user->id))
+                ->where('status', 'Verified')->whereBetween('payment_date', [$startDate, $endDate])->sum('amount');
+            $target_progress = [
+                'amount' => $target->amount ?? 100000, 
+                'achieved' => $achieved,
+                'percentage' => ($target && $target->amount > 0) ? round(($achieved / $target->amount) * 100) : 0,
+            ];
+        }
+
+        return view('dashboard', array_merge($data, [
+            'role' => $role,
+            'leaderboard' => $leaderboard,
+            'target_progress' => $target_progress,
+            'latest_calls' => $data['latest_calls'] ?? [],
+        ]));
     }
 
     private function getBADashboard(User $user, $startDate, $endDate)
@@ -126,11 +152,20 @@ class DashboardController extends Controller
             'kpi' => $kpi,
             'target_progress' => $targetProgress,
             'stats' => $stats,
-        // My Leads Screen
-            'my_leads' => (clone $leads)->whereIn('status', ['Fresh', 'Call Back', 'Follow Up', 'Free Trial'])
-                ->orderBy('follow_up_date', 'asc')
-                ->latest()
-                ->take(10)->get(),
+        // My Priority Queue
+        'my_leads' => clone $leads
+            ->whereNotIn('status', ['Paid Client', 'Lost', 'Junk', 'Not Interested'])
+            ->orderByRaw("
+                CASE 
+                    WHEN status IN ('Call Back', 'Follow Up') AND follow_up_date <= CURRENT_TIMESTAMP THEN 1
+                    WHEN status IN ('Fresh', 'Cold Lead') THEN 2
+                    WHEN status = 'Free Trial' THEN 3
+                    ELSE 4
+                END ASC
+            ")
+            ->orderByRaw('COALESCE(lead_score, 0) DESC')
+            ->orderBy('updated_at', 'desc')
+            ->take(15)->get(),
             // Upcoming Followups (Specific List)
             'upcoming_followups' => (clone $leads)->whereIn('status', ['Call Back', 'Follow Up'])
                 ->whereNotNull('follow_up_date')
@@ -187,11 +222,23 @@ class DashboardController extends Controller
         return [
             'stats' => $stats,
             'team_performance' => User::whereIn('id', $teamIds)
-                ->withCount(['leadActivities as calls_today' => fn($q) => $q->where('activity_type', 'Call Started')->whereBetween('created_at', [$startDate, $endDate])])
-                ->withSum(['payments as revenue' => fn($q) => $q->where('status', 'Verified')->whereBetween('payment_date', [$startDate, $endDate])], 'amount')
+                ->withCount(['activities as calls_today' => fn($q) => $q->where('activity_type', 'Call Started')->whereBetween('created_at', [$startDate, $endDate])])
+                ->withSum(['payments as revenue' => fn($q) => $q->where('payments.status', 'Verified')->whereBetween('payment_date', [$startDate, $endDate])], 'amount')
                 ->get(),
-            // Own Leads fallback
-            'my_leads' => (clone $myOwnLeads)->latest()->take(10)->get(),
+            // My Priority Queue
+            'my_leads' => clone $myOwnLeads
+                ->whereNotIn('status', ['Paid Client', 'Lost', 'Junk', 'Not Interested'])
+                ->orderByRaw("
+                    CASE 
+                        WHEN status IN ('Call Back', 'Follow Up') AND follow_up_date <= CURRENT_TIMESTAMP THEN 1
+                        WHEN status IN ('Fresh', 'Cold Lead') THEN 2
+                        WHEN status = 'Free Trial' THEN 3
+                        ELSE 4
+                    END ASC
+                ")
+                ->orderByRaw('COALESCE(lead_score, 0) DESC')
+                ->orderBy('updated_at', 'desc')
+                ->take(15)->get(),
             'today_followups' => (clone $myOwnLeads)->whereIn('status', ['Call Back', 'Follow Up'])
                 ->whereDate('follow_up_date', '<=', now())
                 ->orderBy('follow_up_date', 'desc')
@@ -244,6 +291,7 @@ class DashboardController extends Controller
                 ->orderBy('follow_up_date', 'desc')
                 ->take(10)
                 ->get(),
+            'my_leads' => collect(),
         ];
     }
 
@@ -277,6 +325,7 @@ class DashboardController extends Controller
                 ->orderBy('follow_up_date', 'desc')
                 ->take(10)
                 ->get(),
+            'my_leads' => collect(),
         ];
     }
     public function leaderboardLive(Request $request)

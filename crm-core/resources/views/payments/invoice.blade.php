@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #INV-{{ $payment->created_at->format('Y') }}-{{ str_pad($payment->id, 5, '0', STR_PAD_LEFT) }}
-    </title>
+    <title>Invoice #INV-{{ $payment->created_at->format('Y') }}-{{ str_pad($payment->id, 5, '0', STR_PAD_LEFT) }} — {{ $company_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -27,7 +26,7 @@
         <!-- Header -->
         <div class="flex justify-between items-start mb-12">
             <div>
-                <h1 class="text-3xl font-black text-indigo-700 tracking-tight">StockIdea</h1>
+                <h1 class="text-3xl font-black text-indigo-700 tracking-tight">{{ $company_name }}</h1>
                 <p class="text-sm text-slate-500 mt-1">Premium Market Advisory Services</p>
             </div>
             <div class="text-right">
@@ -93,9 +92,8 @@
 
         <!-- Footer -->
         <div class="text-center pt-8 border-t border-slate-100">
-            <p class="text-slate-500 text-sm mb-4">Thank you for choosing StockIdea. For support, contact
-                support@stockidea.com.</p>
-            <p class="text-xs text-slate-400 uppercase tracking-widest">Authorized By StockIdea Admin</p>
+            <p class="text-slate-500 text-sm mb-4">Thank you for choosing {{ $company_name }}. For support, contact {{ config('mail.from.address') }}.</p>
+            <p class="text-xs text-slate-400 uppercase tracking-widest">Authorized By {{ $company_name }} Admin</p>
         </div>
 
         <!-- Print Button -->

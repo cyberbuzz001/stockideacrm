@@ -12,7 +12,7 @@ class AdminTrainingController extends Controller
     public function index()
     {
         $user = auth()->user();
-        if (!$user || $user->role !== 'Admin') {
+        if (!$user || !$user->hasPermission('system', 'training_mgmt')) {
             abort(403);
         }
 
@@ -50,7 +50,7 @@ class AdminTrainingController extends Controller
     public function upload(Request $request)
     {
         $user = auth()->user();
-        if (!$user || $user->role !== 'Admin') {
+        if (!$user || !$user->hasPermission('system', 'training_mgmt')) {
             abort(403);
         }
 
@@ -93,7 +93,7 @@ class AdminTrainingController extends Controller
     public function destroy(\App\Models\TrainingModule $module)
     {
         $user = auth()->user();
-        if (!$user || $user->role !== 'Admin') {
+        if (!$user || !$user->hasPermission('system', 'training_mgmt')) {
             abort(403);
         }
 

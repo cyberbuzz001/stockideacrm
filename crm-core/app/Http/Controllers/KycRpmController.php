@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Lead;
 use Illuminate\Http\Request;
-use App\Models\DataAccessLogger;
+use App\Services\DataAccessLogger;
 
 class KycRpmController extends Controller
 {
     public function show(Lead $lead)
     {
+        if ($lead->status !== 'Paid Client') {
+            abort(404, 'KYC/RPM is only available for Paid Clients.');
+        }
+
         $user = auth()->user();
-        if ($user->role !== 'Admin' && $user->role !== 'Manager' && $lead->assigned_to !== $user->id) {
-             // Basic check, LeadController has authorizeLead but let's be safe
-             // Or better yet, reuse authorizeLead if accessible.
+        if (!$user->hasPermission('compliance', 'view_kyc') && (int) $lead->assigned_to !== (int) $user->id) {
              abort(403);
         }
 
@@ -36,8 +38,11 @@ class KycRpmController extends Controller
 
         $query = Lead::query();
 
-        // For non-admin users, only show their assigned leads
-        if (!in_array($user->role, ['Admin', 'Manager', 'Compliance'])) {
+        // Narrow down to only Paid Clients for KYC/RPM
+        $query->where('status', 'Paid Client');
+
+        // For non-admin/manager users, only show their assigned leads
+        if (!$user->hasPermission('compliance', 'view_kyc')) {
             $query->where('assigned_to', $user->id);
         }
         
@@ -48,6 +53,19 @@ class KycRpmController extends Controller
         }
 
         $leads = $query->paginate(20);
+
+        // Calculate Compliance Score dynamically
+        $leads->getCollection()->transform(function ($lead) {
+            $score = 0;
+            if ($lead->is_kyc_completed) $score += 30;
+            if ($lead->is_rpm_completed) $score += 30;
+            if (!empty($lead->pan_number)) $score += 15;
+            if (!empty($lead->aadhaar_number)) $score += 15;
+            if (!empty($lead->demat_id)) $score += 10;
+            $lead->compliance_score = $score;
+            return $lead;
+        });
+
         return view('kyc-rpm.index', compact('leads'));
     }
 }

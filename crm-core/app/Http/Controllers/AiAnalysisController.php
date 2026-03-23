@@ -12,7 +12,7 @@ class AiAnalysisController extends Controller
     public function index()
     {
         $user = auth()->user();
-        if (!$user) {
+        if (!$user || !$user->hasPermission('ai_analysis', 'view')) {
             abort(403);
         }
 
@@ -25,7 +25,7 @@ class AiAnalysisController extends Controller
     public function analyze(Request $request)
     {
         $user = auth()->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA', 'BA'])) {
+        if (!$user || !$user->hasPermission('ai_analysis', 'execute')) {
             abort(403);
         }
 

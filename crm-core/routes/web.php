@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('notifications/counts', [\App\Http\Controllers\NotificationController::class, 'getCounts'])->name('notifications.counts');
     Route::get('notifications/check', [DashboardController::class, 'checkNotifications'])->name('notifications.check');
+    Route::post('notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'readAll'])->name('notifications.read-all');
 
     Route::resource('employees', EmployeeController::class);
     Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
@@ -104,6 +105,7 @@ Route::middleware('auth')->group(function () {
     Route::get('payments/{payment}/invoice', [PaymentController::class, 'invoice'])->name('payments.invoice');
 
     // Paid Clients Module (Sections 11-12)
+    Route::get('clients/retention', [ClientController::class, 'retention'])->name('clients.retention');
     Route::resource('clients', ClientController::class);
     Route::post('clients/{client}/renewal', [ClientController::class, 'updateRenewal'])->name('clients.renewal');
     Route::post('clients/{client}/payments', [ClientController::class, 'storePayment'])->name('clients.payments.store');
@@ -155,6 +157,13 @@ Route::middleware('auth')->group(function () {
 
         // Message Templates
         Route::resource('message-templates', \App\Http\Controllers\MessageTemplateController::class);
+
+        // Role & Permissions Matrix
+        Route::get('/admin/roles/matrix', [\App\Http\Controllers\RolePermissionController::class, 'index'])->name('admin.roles.matrix');
+        Route::post('/admin/roles/matrix', [\App\Http\Controllers\RolePermissionController::class, 'update'])->name('admin.roles.update');
+
+        // Lead Flushing (Cleanup)
+        Route::post('leads/flush', [LeadController::class, 'flush'])->name('leads.flush');
     });
 
     Route::get('message-templates-list', [MessageTemplateController::class, 'list'])->name('message-templates.list');

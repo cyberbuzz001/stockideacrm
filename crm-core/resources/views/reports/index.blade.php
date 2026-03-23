@@ -23,7 +23,7 @@
                         class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500">
                 </div>
 
-                @if(auth()->user()->role === 'Admin' || auth()->user()->role === 'Manager')
+                @if(auth()->user()->hasPermission('performance', 'view_company') || auth()->user()->hasPermission('performance', 'view_team'))
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Filter Agent</label>
                         <select name="user_id" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 w-48">
@@ -209,7 +209,7 @@
             <p class="text-xs text-slate-400 mb-5">Leads created in the selected date range</p>
             @php
                 $funnelMax = max(array_values($conversionFunnel)) ?: 1;
-                $funnelColors = ['bg-indigo-500', 'bg-violet-500', 'bg-amber-500', 'bg-emerald-500'];
+                $funnelColors = ['bg-slate-400', 'bg-indigo-400', 'bg-violet-500', 'bg-amber-500', 'bg-emerald-500'];
                 $funnelIdx = 0;
             @endphp
             <div class="space-y-4">

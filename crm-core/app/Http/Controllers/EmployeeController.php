@@ -12,7 +12,7 @@ class EmployeeController extends Controller
     private function requireAdminOrManager(): void
     {
         $user = auth()->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager'])) {
+        if (!$user || !$user->hasPermission('team', 'manage')) {
             abort(403, 'Unauthorized access to employee management.');
         }
     }
@@ -61,7 +61,7 @@ class EmployeeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'in:Manager,SBA,BA'],
+            'role' => ['required', 'string', 'in:Manager,Team Leader,SBA,BA'],
             'parent_id' => ['nullable', 'exists:users,id'],
         ]);
 
@@ -100,7 +100,7 @@ class EmployeeController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,' . $employee->id],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'string', 'in:Manager,SBA,BA'],
+            'role' => ['required', 'string', 'in:Manager,Team Leader,SBA,BA'],
             'parent_id' => ['nullable', 'exists:users,id'],
         ]);
 

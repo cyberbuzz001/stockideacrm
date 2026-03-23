@@ -103,4 +103,21 @@ class User extends Authenticatable
         }
         return array_values(array_unique($ids));
     }
+    /**
+     * Check if user has a specific permission based on the Role Access Matrix
+     */
+    public function hasPermission(string $module, string $action): bool
+    {
+        // Cache permissions to avoid repeated JSON decoding
+        return \Illuminate\Support\Facades\Cache::remember("user_perm_{$this->role}_{$module}_{$action}", 60, function () use ($module, $action) {
+            $matrix = json_decode(\App\Models\SystemSetting::get('role_access_matrix', '{}'), true);
+            
+            if (isset($matrix[$module][$action])) {
+                return in_array($this->role, $matrix[$module][$action]);
+            }
+
+            // Admins have everything by default if not specified
+            return $this->role === 'Admin';
+        });
+    }
 }

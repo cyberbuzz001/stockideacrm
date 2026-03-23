@@ -9,7 +9,7 @@ class LogViewerController extends Controller
     public function index()
     {
         $user = auth()->user();
-        if (!$user || $user->role !== 'Admin') {
+        if (!$user || !$user->hasPermission('system', 'logs')) {
             abort(403);
         }
 
@@ -36,7 +36,7 @@ class LogViewerController extends Controller
     public function clear()
     {
         $user = auth()->user();
-        if (!$user || $user->role !== 'Admin') {
+        if (!$user || !$user->hasPermission('system', 'logs')) {
             abort(403);
         }
 
