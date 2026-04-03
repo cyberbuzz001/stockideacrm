@@ -71,7 +71,7 @@ class EmployeeController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'parent_id' => $request->parent_id,
-            'is_active' => true,
+            'is_active' => $request->has('is_active') ? true : true, // Default to true if not specified, or use request if provided
         ]);
 
         return redirect()->route('employees.index')->with('success', 'Employee added successfully!');

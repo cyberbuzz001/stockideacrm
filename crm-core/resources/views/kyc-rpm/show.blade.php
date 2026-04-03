@@ -38,9 +38,16 @@
             <div x-show="activeTab === 'kyc'" class="space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Standard Info -->
-                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                        <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 border-b pb-2">Identification Details</h3>
-                        <div class="space-y-4">
+                    <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100" x-data="{ editing: false }">
+                        <div class="flex justify-between items-center mb-6 border-b pb-2">
+                            <h3 class="text-sm font-black text-slate-400 uppercase tracking-widest">Identification Details</h3>
+                            <button @click="editing = !editing" class="text-xs font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">
+                                <span x-show="!editing">Edit Details</span>
+                                <span x-show="editing">Cancel</span>
+                            </button>
+                        </div>
+
+                        <div x-show="!editing" class="space-y-4">
                             <div>
                                 <label class="text-xs font-bold text-slate-500">PAN Number</label>
                                 <p class="text-lg font-black text-slate-900 font-mono tracking-tighter">{{ $lead->masked_pan }}</p>
@@ -54,12 +61,34 @@
                                 <p class="text-lg font-black text-slate-900 font-mono tracking-tighter">{{ $lead->demat_id ?? 'Not Provided' }}</p>
                             </div>
                         </div>
+
+                        <form x-show="editing" action="{{ route('kyc-rpm.update-data', $lead) }}" method="POST" class="space-y-4">
+                            @csrf
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block uppercase">Update PAN</label>
+                                <input type="text" name="pan_number" value="{{ $lead->pan_number }}" class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold p-3 focus:ring-indigo-500 uppercase" placeholder="ABCDE1234F">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block uppercase">Update Aadhaar</label>
+                                <input type="text" name="aadhaar_number" value="{{ $lead->aadhaar_number }}" class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold p-3 focus:ring-indigo-500" placeholder="1234 5678 9012">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block uppercase">Update Demat ID</label>
+                                <input type="text" name="demat_id" value="{{ $lead->demat_id }}" class="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-bold p-3 focus:ring-indigo-500" placeholder="16-digit Demat ID">
+                            </div>
+                            <button type="submit" class="w-full bg-indigo-600 text-white font-black py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition uppercase tracking-widest text-xs">
+                                Save Compliance Data
+                            </button>
+                        </form>
                     </div>
 
                     <!-- Status Panel -->
                     <div class="bg-indigo-900 p-8 rounded-3xl shadow-xl text-white">
                         <h3 class="text-sm font-black text-indigo-300 uppercase tracking-widest mb-6 border-b border-indigo-800 pb-2">Verification Status</h3>
-                        <div class="flex items-center gap-4 mb-8">
+                        @php
+                            $kycMandatory = \App\Models\SystemSetting::get('kyc_mandatory', '0') === '1';
+                        @endphp
+                        <div class="flex items-center gap-4 mb-4">
                             <div class="w-16 h-16 rounded-full flex items-center justify-center {{ $lead->is_kyc_completed ? 'bg-green-500' : 'bg-amber-500' }}">
                                 @if($lead->is_kyc_completed)
                                     <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
@@ -70,10 +99,13 @@
                             <div>
                                 <p class="text-2xl font-black uppercase">{{ $lead->is_kyc_completed ? 'Verified' : 'Pending' }}</p>
                                 <p class="text-indigo-300 font-medium">Standard KYC Compliance</p>
+                                @if(!$kycMandatory)
+                                    <span class="text-[10px] bg-indigo-800 px-2 py-0.5 rounded-full font-black tracking-widest text-indigo-300 uppercase mt-1 inline-block">Optional</span>
+                                @endif
                             </div>
                         </div>
-                        <p class="text-sm text-indigo-400 leading-relaxed italic">
-                            All identification numbers are masked except for authorized compliance officers. Ensure high resolution document uploads for faster verification.
+                        <p class="text-sm text-indigo-400 leading-relaxed italic border-t border-indigo-800 pt-4">
+                            {{ $kycMandatory ? 'KYC is mandatory for this account. Leads cannot be marked as Paid Client without full verification.' : 'KYC is currently optional. Agents can onboard clients without full verification, but data collection is still recommended for audit trails.' }}
                         </p>
                     </div>
                 </div>
@@ -111,7 +143,7 @@
                                     </div>
                                     
                                     @if(!$step->completed_at)
-                                        @can('rbac.compliance.complete_step')
+                                        @if(Auth::user()->can('rbac.compliance.complete_step') || $lead->assigned_to === Auth::id())
                                             <form action="{{ route('leads.compliance.step', $lead) }}" method="POST">
                                                 @csrf
                                                 <input type="hidden" name="step_key" value="{{ $step->step_key }}">

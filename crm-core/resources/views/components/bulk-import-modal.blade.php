@@ -19,18 +19,19 @@
                     <option value="mobile_only">Mobile Only (one per line)</option>
                     <option value="name_mobile">Name, Mobile (comma/tab separated)</option>
                     <option value="name_mobile_email">Name, Mobile, Email (comma/tab separated)</option>
+                    <option value="vertical_kv">Vertical Key-Value (Excel Paste Format)</option>
                 </select>
             </div>
 
             <div class="mb-6">
                 <label class="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
-                    Paste Lead Data (One per line)
+                    Paste Lead Data
                 </label>
                 <textarea name="bulk_text" rows="12" required
-                    placeholder="Example for 'Name, Mobile' format:&#10;John Doe, 9876543210&#10;Jane Smith, 9123456789&#10;&#10;Or for 'Mobile Only':&#10;9876543210&#10;9123456789"
+                    placeholder="For Vertical format:&#10;fullName [TAB] John Doe&#10;mobile [TAB] 9876543210&#10;fullName [TAB] Jane Smith&#10;mobile [TAB] 9123456789"
                     class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 font-mono text-sm"></textarea>
                 <p class="mt-2 text-xs text-slate-500">
-                    💡 Tip: You can use comma, tab, or pipe (|) as separators. Duplicates will be automatically skipped.
+                    💡 Tip: For 'Vertical Key-Value', copy directly from Excel (Column A: Attribute, Column B: Value).
                 </p>
             </div>
 

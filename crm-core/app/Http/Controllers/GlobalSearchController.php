@@ -58,17 +58,25 @@ class GlobalSearchController extends Controller
             ->when(in_array($user->role, ['SBA', 'Manager'], true), function ($q) use ($user) {
                 $q->whereIn('assigned_to', $user->getAllTeamIds());
             })
+            ->with('assignee:id,name')
             ->limit(8)
             ->get(['id', 'name', 'mobile', 'email', 'status', 'assigned_to']);
 
         foreach ($leads as $lead) {
-            $isClient = $lead->status === 'Paid Client';
+            $isClient   = $lead->status === 'Paid Client';
+            $agentName  = $lead->assignee?->name ?? 'Unassigned';
+            $statusLabel = $lead->status ?? 'Cold Lead';
+            $typeLabel   = $isClient ? 'Client' : 'Lead';
+
             $results[] = [
                 'title'    => $lead->name,
-                'subtitle' => ($isClient ? 'Client' : 'Lead') . ' - ' . $lead->mobile,
+                'subtitle' => "{$typeLabel} · {$lead->mobile} · {$statusLabel} · Agent: {$agentName}",
                 'url'      => $isClient ? route('clients.show', $lead->id) : route('leads.show', $lead->id),
                 'type'     => $isClient ? 'client' : 'lead',
-                'icon'     => $isClient ? 'star' : 'user'
+                'icon'     => $isClient ? 'star' : 'user',
+                'status'   => $statusLabel,
+                'agent'    => $agentName,
+                'mobile'   => $lead->mobile,
             ];
         }
 

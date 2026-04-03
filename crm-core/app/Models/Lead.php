@@ -253,4 +253,14 @@ class Lead extends Model
     {
         return $this->hasMany(LeadComplianceStep::class);
     }
+
+    public function clientProof()
+    {
+        return $this->hasOne(ClientProof::class, 'client_id');
+    }
+
+    public function whatsappLogs()
+    {
+        return $this->hasMany(WhatsAppMessageLog::class, 'lead_id');
+    }
 }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Lead;
 use App\Models\User;
+use App\Notifications\AlertNotification;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 
 class ClientController extends Controller
@@ -154,26 +156,76 @@ class ClientController extends Controller
         }
         $this->authorizeClient($client, $user);
 
-        $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'payment_mode' => 'required|string|max:50',
+        $validated = $request->validate([
+            'amount' => 'nullable|numeric|min:1',
+            'payment_mode' => 'nullable|string|max:50',
             'subscription_plan' => 'required|string|max:100',
+            'is_split_payment' => 'nullable',
+            'split_1_user_id' => 'nullable|exists:users,id',
+            'split_1_amount' => 'nullable|numeric|min:1',
+            'split_2_user_id' => 'nullable|exists:users,id',
+            'split_2_amount' => 'nullable|numeric|min:1',
         ]);
 
-        $client->payments()->create([
-            'amount' => $request->amount,
-            'payment_date' => now(),
-            'payment_mode' => $this->sanitizeText($request->payment_mode),
-            'subscription_plan' => $this->sanitizeText($request->subscription_plan),
-            'status' => 'Pending',
-            'entered_by' => $user->id,
-        ]);
+        $isSplit = filter_var($request->input('is_split_payment'), FILTER_VALIDATE_BOOLEAN);
+
+        if ($isSplit) {
+            if (!empty($validated['split_1_amount']) && $validated['split_1_amount'] > 0) {
+                $client->payments()->create([
+                    'user_id' => $validated['split_1_user_id'] ?? $client->assigned_to,
+                    'amount' => $validated['split_1_amount'],
+                    'payment_date' => now(),
+                    'payment_mode' => $this->sanitizeText($request->payment_mode),
+                    'subscription_plan' => $this->sanitizeText($validated['subscription_plan']),
+                    'status' => 'Pending',
+                    'entered_by' => $user->id,
+                ]);
+            }
+            if (!empty($validated['split_2_amount']) && $validated['split_2_amount'] > 0) {
+                $client->payments()->create([
+                    'user_id' => $validated['split_2_user_id'] ?? $client->assigned_to,
+                    'amount' => $validated['split_2_amount'],
+                    'payment_date' => now(),
+                    'payment_mode' => $this->sanitizeText($request->payment_mode),
+                    'subscription_plan' => $this->sanitizeText($validated['subscription_plan']),
+                    'status' => 'Pending',
+                    'entered_by' => $user->id,
+                ]);
+            }
+            $totalAmount = ($validated['split_1_amount'] ?? 0) + ($validated['split_2_amount'] ?? 0);
+        } else {
+            $client->payments()->create([
+                'user_id' => $client->assigned_to,
+                'amount' => $validated['amount'],
+                'payment_date' => now(),
+                'payment_mode' => $this->sanitizeText($request->payment_mode),
+                'subscription_plan' => $this->sanitizeText($validated['subscription_plan']),
+                'status' => 'Pending',
+                'entered_by' => $user->id,
+            ]);
+            $totalAmount = $validated['amount'] ?? 0;
+        }
 
         $client->activities()->create([
             'user_id' => $user->id,
             'activity_type' => 'New Payment Logged',
-            'notes' => 'Agent logged a new payment of INR ' . number_format((float) $request->amount, 2) . ' (' . $this->sanitizeText($request->subscription_plan) . ')',
+            'notes' => 'Agent logged a new payment of INR ' . number_format((float) $totalAmount, 2) . ' (' . $this->sanitizeText($validated['subscription_plan']) . ')',
         ]);
+
+        \App\Models\SystemAnnouncement::create([
+            'title' => 'Pending Payment Logged',
+            'body' => 'A new payment is awaiting verification from ' . ($client->assignee->name ?? 'Agent'),
+            'type' => 'warning',
+            'expires_at' => now()->addHours(24)
+        ]);
+
+        // Notify Admins via Database Notifications
+        $admins = User::where('role', 'Admin')->get();
+        Notification::send($admins, new AlertNotification(
+            'New payment from client ' . ($client->name ?? 'a client') . ' logged by ' . ($user->name),
+            'warning',
+            route('payments.index')
+        ));
 
         return redirect()->back()->with('success', 'New payment logged and awaiting approval.');
     }
@@ -242,5 +294,27 @@ class ClientController extends Controller
             }
         }
         return $input;
+    }
+
+    public function revert(Lead $client)
+    {
+        $user = auth()->user();
+        if (!$user || $user->role !== 'Admin') {
+            abort(403);
+        }
+
+        $client->update([
+            'status' => 'Cold Lead',
+            'service_start_date' => null,
+            'renewal_date' => null
+        ]);
+
+        $client->activities()->create([
+            'user_id' => $user->id,
+            'activity_type' => 'Client Reverted',
+            'notes' => 'Administrator reverted this client back to a Lead. Status set to Cold Lead.'
+        ]);
+
+        return redirect()->route('leads.index')->with('success', 'Client reverted back to Lead status.');
     }
 }

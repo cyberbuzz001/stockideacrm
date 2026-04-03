@@ -1,0 +1,27 @@
+[
+    {
+        "id": 1,
+        "title": "The 80/20 Rule",
+        "description": "80% of your revenue comes from 20% of your clients. Focus on your top-tier leads today."
+    },
+    {
+        "id": 2,
+        "title": "Objection Handling",
+        "description": "When a client says 'I need to think', they usually mean 'I don't see the value yet'. Re-state the ROI."
+    },
+    {
+        "id": 3,
+        "title": "The Power of Follow-up",
+        "description": "Most sales happen after the 5th contact. Don't let your follow-up queue grow cold."
+    },
+    {
+        "id": 4,
+        "title": "Emotional Connection",
+        "description": "People buy based on emotion and justify with logic. Connect with their financial goals first."
+    },
+    {
+        "id": 5,
+        "title": "Time is Money",
+        "description": "The faster you respond to a 'Fresh' lead, the higher your conversion probability. Speed is key."
+    }
+]

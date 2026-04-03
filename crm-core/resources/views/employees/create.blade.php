@@ -76,6 +76,19 @@
                             <p class="text-xs text-gray-500 mt-1">Assign a Manager or SBA as the supervisor.</p>
                         </div>
 
+                        <!-- Active Status Toggle -->
+                        <div class="mb-6 flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="hidden" name="is_active" value="0">
+                                <input type="checkbox" name="is_active" value="1" class="sr-only peer" checked>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                            <div>
+                                <p class="text-sm font-bold text-gray-800">Account Active</p>
+                                <p class="text-xs text-gray-400">If disabled, the user cannot log in to the CRM.</p>
+                            </div>
+                        </div>
+
                         <div class="flex items-center justify-end mt-4">
                             <a href="{{ route('employees.index') }}"
                                 class="text-sm text-gray-600 underline mr-4">Cancel</a>

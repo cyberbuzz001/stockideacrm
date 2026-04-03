@@ -11,6 +11,7 @@ class Payment extends Model
 
     protected $fillable = [
         'lead_id',
+        'user_id',
         'amount',
         'commission_amount',
         'payment_date',
@@ -39,6 +40,11 @@ class Payment extends Model
     }
 
     public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function enteredByUser()
     {
         return $this->belongsTo(User::class, 'entered_by');
     }

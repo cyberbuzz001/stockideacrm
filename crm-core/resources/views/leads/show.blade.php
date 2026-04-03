@@ -323,6 +323,7 @@
                                 <select @change="loadTemplates($el.value)" class="text-xs rounded-lg border-slate-200 font-bold focus:ring-indigo-500">
                                     <option value="sms">SMS Templates</option>
                                     <option value="email">Email Templates</option>
+                                    <option value="whatsapp">WhatsApp Templates</option>
                                 </select>
                             </div>
                         </div>
@@ -352,9 +353,15 @@
                                     </div>
                                 </div>
                                 <div class="mt-3 flex flex-col sm:flex-row gap-3">
+                                    <button type="button" x-show="selectedType === 'whatsapp' && messageBody" 
+                                            @click="sendWhatsAppAPI()" 
+                                            class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl transition shadow-xl flex justify-center items-center gap-2 uppercase tracking-widest text-[10px]">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        Fire Meta API
+                                    </button>
                                     <a :href="'https://wa.me/91' + leadMobile.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(messageBody)" target="_blank" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl transition shadow-md flex justify-center items-center gap-2">
                                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.549 4.131 1.594 5.928L0 24l6.233-1.576c1.728 1 3.682 1.536 5.765 1.536 6.638 0 12.022-5.382 12.022-12.031zM12.031 22.022c-1.802 0-3.564-.485-5.111-1.402l-.366-.217-3.793.961.981-3.69-.239-.379c-.997-1.591-1.523-3.425-1.523-5.282 0-5.558 4.524-10.082 10.082-10.082s10.081 4.524 10.081 10.082c-.001 5.558-4.525 10.081-10.082 10.081zm5.534-7.555c-.303-.152-1.795-.886-2.073-.988-.278-.103-.48-.152-.683.153-.203.303-.783.987-.959 1.189-.176.202-.352.227-.655.076-1.532-.765-2.791-1.638-3.901-3.535-.114-.194-.012-.303.141-.453.138-.135.303-.353.454-.531.152-.178.202-.303.303-.505.101-.202.051-.379-.025-.53-.076-.152-.682-1.644-.935-2.253-.247-.591-.497-.509-.682-.519-.176-.008-.379-.011-.581-.011s-.53.076-.808.379c-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.086 2.932 1.238 3.134.152.202 2.138 3.264 5.176 4.576.721.312 1.284.498 1.725.638.723.23 1.382.197 1.898.119.579-.088 1.795-.733 2.047-1.44.253-.708.253-1.315.177-1.442-.075-.126-.277-.201-.58-.352z"/></svg>
-                                        Send WhatsApp
+                                        Manual WA
                                     </a>
                                     <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition shadow-md">
                                         Log Sent Message
@@ -468,7 +475,89 @@
 
                     <!-- Internal Notes (Section 11) -->
                     <x-lead-notes-widget :lead="$lead" />
+
+                    <!-- Assign Lead to Agent (Admin / SBA Only) -->
+                    @if(in_array(auth()->user()->role, ['Admin', 'SBA']))
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border border-indigo-100">
+                        <h3 class="text-base font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            Assign Lead to Agent
+                        </h3>
+                        @if($lead->assignee)
+                            <p class="text-xs text-slate-500 mb-3 font-semibold">
+                                Currently assigned to: <span class="text-indigo-700 font-black">{{ $lead->assignee->name }}</span>
+                            </p>
+                        @else
+                            <p class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3 font-bold">
+                                ⚠️ Unassigned — no agent yet.
+                            </p>
+                        @endif
+                        <form action="{{ route('leads.assign') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="lead_ids[]" value="{{ $lead->id }}">
+                            <div class="mb-3">
+                                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Select Agent</label>
+                                <select name="agent_id" required
+                                    class="w-full rounded-xl border-slate-200 text-sm font-semibold text-slate-800 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">-- Choose Agent --</option>
+                                    @foreach(\App\Models\User::where('role', '!=', 'Admin')->orderBy('name')->get() as $agent)
+                                        <option value="{{ $agent->id }}" {{ $lead->assigned_to == $agent->id ? 'selected' : '' }}>
+                                            {{ $agent->name }} ({{ $agent->role }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit"
+                                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2.5 rounded-xl transition shadow-md text-sm flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                Assign Now
+                            </button>
+                        </form>
+                    </div>
+                    @endif
                 </div>
+
+            <!-- The Closer's Playbook (Battle Cards Sidebar) -->
+            <div x-data="{ open: false }" class="fixed right-0 top-1/4 z-50 flex items-start transition-transform duration-300 translate-x-full" :class="open ? 'translate-x-0' : 'translate-x-[calc(100%-40px)]'">
+                <!-- Toggle Tab -->
+                <button @click="open = !open" 
+                        class="bg-indigo-600 text-white p-3 rounded-l-2xl shadow-2xl flex flex-col items-center gap-2 hover:bg-indigo-700 transition-all border-y border-l border-indigo-400">
+                    <span class="[writing-mode:vertical-lr] font-black text-[10px] uppercase tracking-[0.2em]">The Closer's Playbook</span>
+                    <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+
+                <!-- Sidebar Content -->
+                <div class="bg-white/95 backdrop-blur-xl w-80 h-[60vh] shadow-2xl border-l border-indigo-100 overflow-hidden flex flex-col rounded-bl-3xl">
+                    <div class="p-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                        <h4 class="font-black text-sm uppercase tracking-widest">Battle Cards</h4>
+                        <p class="text-[9px] font-bold opacity-80 uppercase mt-1 italic">Click an objection to see the rebuttal</p>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 space-y-3" x-data="{ activeScript: null }">
+                        @foreach($objectionScripts as $script)
+                            <div class="group">
+                                <button @click="activeScript = (activeScript === '{{ $script->tag }}' ? null : '{{ $script->tag }}')" 
+                                        class="w-full flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left">
+                                    <span class="text-xs font-black text-slate-700 group-hover:text-indigo-700">{{ $script->title }}</span>
+                                    <svg class="w-3 h-3 text-slate-400 group-hover:text-indigo-400 transition-transform" :class="activeScript === '{{ $script->tag }}' ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                                <div x-show="activeScript === '{{ $script->tag }}'" x-collapse class="mt-2 text-[11px] leading-relaxed text-indigo-900 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50 italic font-medium">
+                                    {{ $script->script }}
+                                    <button @click="navigator.clipboard.writeText('{{ addslashes($script->script) }}'); alert('Script copied!')" 
+                                            class="mt-2 flex items-center gap-1 text-[9px] font-black uppercase text-indigo-600 hover:text-indigo-800">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                                        Copy Script
+                                    </button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="p-3 bg-slate-50 border-t border-slate-100">
+                        <p class="text-[9px] text-center font-black text-slate-400 uppercase tracking-tighter">Powered by Shreesvarn Sales Engine</p>
+                    </div>
+                </div>
+            </div>
 
             </div>
 
@@ -555,7 +644,19 @@
                 <div x-show="status === 'Make Payment'"
                     class="mb-4 border-l-4 border-green-500 pl-4 bg-green-50 p-2 space-y-3">
                     <p class="text-[10px] font-bold text-green-700 uppercase">Payment Info</p>
-                    <div class="grid grid-cols-2 gap-2">
+
+                    <!-- Split Payment Toggle -->
+                    @if(in_array(auth()->user()->role, ['Admin', 'Manager', 'SBA', 'TL', 'BA']))
+                    <div class="mb-2">
+                        <label class="flex items-center space-x-2 text-sm text-green-800 font-bold cursor-pointer">
+                            <input type="checkbox" name="is_split_payment" x-model="isSplitPayment" class="rounded text-green-600 focus:ring-green-500">
+                            <span>Split Payment (e.g. between SBA/TL and BA)?</span>
+                        </label>
+                    </div>
+                    @endif
+
+                    <!-- Single Payment Mode (Default) -->
+                    <div x-show="!isSplitPayment" class="grid grid-cols-2 gap-2">
                         <input type="number" name="amount" placeholder="Amount (e.g. 5000)"
                             class="w-full border rounded p-2 text-sm">
                         <select name="payment_mode" class="w-full border rounded p-2 text-sm">
@@ -564,6 +665,51 @@
                             <option value="Cash">Cash</option>
                             <option value="Other">Other</option>
                         </select>
+                    </div>
+
+                    <!-- Split Payment Mode -->
+                    <div x-show="isSplitPayment" x-data="{ totalAmount: 0 }" class="space-y-3 p-3 bg-white border border-green-200 rounded-lg shadow-sm">
+                        <div class="mb-3 pb-2 border-b border-gray-100 flex items-center justify-between">
+                            <div class="flex-1 mr-4">
+                                <label class="text-[9px] font-black uppercase text-slate-400 block mb-1">Total to Split</label>
+                                <input type="number" x-model="totalAmount" placeholder="Total Amount" class="w-full border rounded p-1.5 text-xs font-bold">
+                            </div>
+                            <button type="button" @click="$el.closest('form').split_1_amount.value = (totalAmount/2).toFixed(2); $el.closest('form').split_2_amount.value = (totalAmount/2).toFixed(2);" 
+                                    class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-100 transition-all">
+                                ⚖️ Split 50/50
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-indigo-600 mb-1 block">Split 1</label>
+                                <select name="split_1_user_id" class="w-full border rounded p-1.5 text-xs text-gray-700 mb-1">
+                                    @if($lead->assignee)
+                                        <option value="{{ $lead->assignee->id }}">Assigned BA: {{ $lead->assignee->name }}</option>
+                                    @endif
+                                    <option value="{{ auth()->user()->id }}" {{ (!$lead->assignee || $lead->assignee->id === auth()->user()->id) ? 'selected' : '' }}>Myself: {{ auth()->user()->name }}</option>
+                                </select>
+                                <input type="number" name="split_1_amount" placeholder="Amount 1 (e.g. 13900)" class="w-full border rounded p-1.5 text-xs font-bold text-indigo-700 placeholder-indigo-200">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black uppercase text-rose-600 mb-1 block">Split 2</label>
+                                <select name="split_2_user_id" class="w-full border rounded p-1.5 text-xs text-gray-700 mb-1">
+                                    <option value="{{ auth()->user()->id }}" selected>Myself: {{ auth()->user()->name }}</option>
+                                    @if($lead->assignee && $lead->assignee->id !== auth()->user()->id)
+                                        <option value="{{ $lead->assignee->id }}">Assigned BA: {{ $lead->assignee->name }}</option>
+                                    @endif
+                                </select>
+                                <input type="number" name="split_2_amount" placeholder="Amount 2 (e.g. 13900)" class="w-full border rounded p-1.5 text-xs font-bold text-rose-700 placeholder-rose-200">
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500 whitespace-nowrap">Source:</label>
+                            <select name="split_payment_mode" class="w-full border-none bg-gray-50 rounded p-1.5 text-xs focus:ring-0">
+                                <option value="UPI">UPI</option>
+                                <option value="NEFT">NEFT/IMPS</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
                     </div>
 
                     <p class="text-[10px] font-bold text-red-600 uppercase mt-4">Mandatory KYC Data</p>
@@ -679,6 +825,8 @@
                 currentDef: null,
                 checklist: [],
                 isValid: true,
+                isSplitPayment: false,
+                splitTotalAmount: '',
 
                 updateRequirements() {
                     this.currentDef = this.definitions[this.status] || null;
@@ -727,14 +875,17 @@
                 leadMobile: "{{ $lead->mobile }}",
                 agentName: "{{ auth()->user()->name }}",
                 companyName: "{{ \App\Models\SystemSetting::get('company_name', config('app.name')) }}",
+                selectedType: 'sms',
 
                 init() {
                     this.loadTemplates('sms');
                 },
 
                 async loadTemplates(type) {
+                    this.selectedType = type;
                     try {
-                        const response = await fetch("{{ route('message-templates.list') }}?type=" + type);
+                        const url = "{{ route('message-templates.list') }}?type=" + type;
+                        const response = await fetch(url);
                         this.templates = await response.json();
                     } catch (e) {
                         console.error('Failed to load templates');
@@ -757,11 +908,31 @@
                     }
                 },
 
-                copyToClipboard() {
-                    if (!this.messageBody) return;
-                    navigator.clipboard.writeText(this.messageBody).then(() => {
-                        alert('Copied to clipboard!');
-                    });
+                async sendWhatsAppAPI() {
+                    const tplId = document.querySelector('select[@change="applyTemplate($el.value)"]').value;
+                    if (!tplId) return alert('Please select a template first');
+                    
+                    if (!confirm('Fire WhatsApp API for this template?')) return;
+
+                    try {
+                        const response = await fetch("{{ route('leads.send-whatsapp', $lead) }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                            },
+                            body: JSON.stringify({ template_id: tplId })
+                        });
+                        const res = await response.json();
+                        if (res.success) {
+                            alert('WhatsApp API triggered successfully!');
+                            window.location.reload(); // Refresh to see activity
+                        } else {
+                            alert('API Error: ' + res.message);
+                        }
+                    } catch (e) {
+                        alert('Failed to send WhatsApp via API');
+                    }
                 }
             }
         }

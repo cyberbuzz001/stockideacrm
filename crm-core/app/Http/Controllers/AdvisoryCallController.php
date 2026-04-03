@@ -98,10 +98,17 @@ class AdvisoryCallController extends Controller
         $validated['user_id'] = $user->id;
         $validated['call_text'] = $this->sanitizeText($validated['call_text']);
 
-        AdvisoryCall::create($validated);
+        $call = AdvisoryCall::create($validated);
+
+        \App\Models\SystemAnnouncement::create([
+            'title' => 'New Market Call: ' . $call->segment,
+            'body' => $call->call_text,
+            'type' => 'info',
+            'expires_at' => now()->addHours(12)
+        ]);
 
         return redirect()->route('advisory-calls.index')
-            ->with('success', 'Market call created successfully!');
+            ->with('success', 'Market call created and broadcasted successfully!');
     }
 
     /**

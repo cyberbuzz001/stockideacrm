@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Lead;
 use App\Models\User;
+use App\Notifications\AlertNotification;
+use Illuminate\Support\Facades\Notification;
 use App\Models\SystemSetting;
 use App\Services\LeadScoringService;
 use App\Services\LeadStatusService;
 use App\Services\DataAccessLogger;
 use App\Services\ComplianceService;
+use App\Services\WhatsAppService;
 use App\Models\ClientConsent;
+use App\Models\MessageTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -35,14 +39,26 @@ class LeadController extends Controller
         $query = Lead::query();
 
         $userRole = $user->role;
+        $viewScope = $request->query('scope', ($userRole === 'SBA' || $userRole === 'Manager') ? 'self' : 'all');
+
         // ═══════════════════════════════════════════
         // RBAC FETCHING LOGIC
         // ═══════════════════════════════════════════
         if ($user->hasPermission('leads', 'view_all')) {
             // Admin/Manager (if allowed) sees all leads
+            if ($viewScope === 'self') {
+                $query->where('assigned_to', $user->id);
+            }
         } elseif ($user->hasPermission('leads', 'view_team')) {
             $teamIds = $user->getAllTeamIds();
-            $query->whereIn('assigned_to', $teamIds);
+            if ($viewScope === 'self') {
+                $query->where('assigned_to', $user->id);
+            } elseif ($viewScope === 'team') {
+                // Team view: Members except self
+                $query->whereIn('assigned_to', $teamIds)->where('assigned_to', '!=', $user->id);
+            } else {
+                $query->whereIn('assigned_to', $teamIds);
+            }
         } elseif ($user->hasPermission('leads', 'view_own')) {
             $query->where('assigned_to', $user->id);
         } else {
@@ -132,7 +148,7 @@ class LeadController extends Controller
         }
 
         $leads = $query->with('assignee')->paginate(15)->withQueryString();
-        return view('leads.index', compact('leads', 'activeTab', 'assignedCount', 'unassignedCount'));
+        return view('leads.index', compact('leads', 'activeTab', 'assignedCount', 'unassignedCount', 'viewScope'));
     }
 
     public function fetchLeads()
@@ -200,6 +216,8 @@ class LeadController extends Controller
         $lead->load(['activities.user', 'payments', 'assignee', 'messages.user', 'documents', 'consents', 'compliance', 'complianceSteps']);
         $this->compliance->ensureCompliance($lead);
 
+        $objectionScripts = \App\Models\ObjectionScript::where('is_active', true)->get();
+
         // Log access to sensitive fields (PAN/Aadhaar) for audit
         if (!empty($lead->pan_number)) {
             DataAccessLogger::log($user, $lead, 'pan_number', 'view', request());
@@ -208,7 +226,7 @@ class LeadController extends Controller
             DataAccessLogger::log($user, $lead, 'aadhaar_number', 'view', request());
         }
 
-        return view('leads.show', compact('lead'));
+        return view('leads.show', compact('lead', 'objectionScripts'));
     }
 
     public function completeComplianceStep(Request $request, Lead $lead)
@@ -333,14 +351,28 @@ class LeadController extends Controller
                 ->with('warning', 'Duplicate detected. Lead with mobile ' . $validated['mobile'] . ' already exists (ID: ' . $existingLead->id . ').');
         }
 
+        // Auto-assign to BA/SBA who created this lead so it shows up in their list
+        $autoAssign = in_array($user->role, ['BA', 'SBA']) ? $user->id : null;
+
         $lead = Lead::create(array_merge($validated, [
-            'status' => 'Cold Lead',
-            'assigned_by' => $user->id
+            'status'      => 'Cold Lead',
+            'assigned_by' => $user->id,
+            'assigned_to' => $autoAssign,
         ]));
 
-        $this->scorer->updateScore($lead);
+        // Log the auto-assignment activity
+        if ($autoAssign) {
+            $lead->activities()->create([
+                'user_id'       => $user->id,
+                'activity_type' => 'Lead Created & Self-Assigned',
+                'notes'         => 'Lead created and automatically assigned to ' . $user->name . ' (' . $user->role . ').',
+            ]);
+        }
 
-        return redirect()->route('leads.index')->with('success', 'Lead created and AI scored!');
+        $this->scorer->updateScore($lead);
+        $this->compliance->ensureCompliance($lead);
+
+        return redirect()->route('leads.show', $lead)->with('success', 'Lead created, AI scored, and assigned to you!');
     }
 
     public function assign(Request $request)
@@ -496,6 +528,12 @@ class LeadController extends Controller
             'trial_end_date' => 'nullable|date',
             'amount' => 'nullable|numeric',
             'payment_mode' => 'nullable|string|max:50',
+            'is_split_payment' => 'nullable',
+            'split_1_user_id' => 'nullable|exists:users,id',
+            'split_1_amount' => 'nullable|numeric|min:1',
+            'split_2_user_id' => 'nullable|exists:users,id',
+            'split_2_amount' => 'nullable|numeric|min:1',
+            'split_payment_mode' => 'nullable|string|max:50',
             'follow_up_notes' => 'nullable|string|max:2000',
             'conversion_notes' => 'nullable|string|max:2000',
             'name' => 'nullable|string|max:255',
@@ -511,15 +549,17 @@ class LeadController extends Controller
 
         if ($validated['status'] === 'Paid Client') {
             $kycMandatory = SystemSetting::get('kyc_mandatory', '0');
-            if ($kycMandatory === '1' && (!$lead->is_kyc_completed || !$lead->is_rpm_completed)) {
-                return back()->with('error', 'KYC and RPM must be completed before marking as Paid Client.')->withInput();
-            }
+            if ($kycMandatory === '1') {
+                if (!$lead->is_kyc_completed || !$lead->is_rpm_completed) {
+                    return back()->with('error', 'KYC and RPM must be completed before marking as Paid Client.')->withInput();
+                }
 
-            if (empty($lead->pan_number) && empty($validated['pan_number'])) {
-                return back()->with('error', 'PAN Number is mandatory for Paid Onboarding. Please fill KYC details.')->withInput();
-            }
-            if (empty($lead->demat_id) && empty($validated['demat_id'])) {
-                return back()->with('error', 'Demat ID is mandatory for Paid Onboarding. Please fill KYC details.')->withInput();
+                if (empty($lead->pan_number) && empty($validated['pan_number'])) {
+                    return back()->with('error', 'PAN Number is mandatory for Paid Onboarding. Please fill KYC details.')->withInput();
+                }
+                if (empty($lead->demat_id) && empty($validated['demat_id'])) {
+                    return back()->with('error', 'Demat ID is mandatory for Paid Onboarding. Please fill KYC details.')->withInput();
+                }
             }
         }
 
@@ -571,15 +611,58 @@ class LeadController extends Controller
 
         if ($validated['status'] === 'Make Payment' || $validated['status'] === 'Paid Client') {
             if ($validated['status'] === 'Make Payment') {
-                $lead->payments()->create([
-                    'amount' => $validated['amount'] ?? 0,
-                    'payment_date' => now(),
-                    'payment_mode' => $this->sanitizeText($validated['payment_mode'] ?? 'Other'),
-                    'status' => 'Pending',
-                    'entered_by' => $user->id,
-                    'remarks' => $this->sanitizeText($validated['notes'] ?? ''),
-                ]);
+                $isSplit = filter_var($request->input('is_split_payment'), FILTER_VALIDATE_BOOLEAN);
+
+                if ($isSplit) {
+                    if (!empty($validated['split_1_amount']) && $validated['split_1_amount'] > 0) {
+                        $lead->payments()->create([
+                            'user_id' => $validated['split_1_user_id'] ?? $lead->assigned_to,
+                            'amount' => $validated['split_1_amount'],
+                            'payment_date' => now(),
+                            'payment_mode' => $this->sanitizeText($validated['split_payment_mode'] ?? 'Other'),
+                            'status' => 'Pending',
+                            'entered_by' => $user->id,
+                            'remarks' => $this->sanitizeText($validated['notes'] ?? ''),
+                        ]);
+                    }
+                    if (!empty($validated['split_2_amount']) && $validated['split_2_amount'] > 0) {
+                        $lead->payments()->create([
+                            'user_id' => $validated['split_2_user_id'] ?? $lead->assigned_to,
+                            'amount' => $validated['split_2_amount'],
+                            'payment_date' => now(),
+                            'payment_mode' => $this->sanitizeText($validated['split_payment_mode'] ?? 'Other'),
+                            'status' => 'Pending',
+                            'entered_by' => $user->id,
+                            'remarks' => $this->sanitizeText($validated['notes'] ?? ''),
+                        ]);
+                    }
+                } else {
+                    $lead->payments()->create([
+                        'user_id' => $lead->assigned_to,
+                        'amount' => $validated['amount'] ?? 0,
+                        'payment_date' => now(),
+                        'payment_mode' => $this->sanitizeText($validated['payment_mode'] ?? 'Other'),
+                        'status' => 'Pending',
+                        'entered_by' => $user->id,
+                        'remarks' => $this->sanitizeText($validated['notes'] ?? ''),
+                    ]);
+                }
             }
+
+            \App\Models\SystemAnnouncement::create([
+                'title' => 'Pending Payment Logged',
+                'body' => 'A new payment is awaiting verification from ' . ($lead->assignee->name ?? 'Agent'),
+                'type' => 'warning',
+                'expires_at' => now()->addHours(24)
+            ]);
+
+            // Notify Admins
+            $admins = User::where('role', 'Admin')->get();
+            Notification::send($admins, new AlertNotification(
+                'New payment from ' . ($lead->name ?? 'a lead') . ' logged by ' . ($user->name),
+                'warning',
+                route('payments.index')
+            ));
 
             session()->flash('deal_won', true);
         }
@@ -639,27 +722,31 @@ class LeadController extends Controller
 
         $file = $request->file('csv_file');
         $handle = fopen($file->getPathname(), 'r');
-        $header = fgetcsv($handle); // Skip header
+
+        $rows = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            $rows[] = $row;
+        }
+        fclose($handle);
 
         $imported = 0;
         $duplicates = 0;
         $errors = 0;
 
-        while (($row = fgetcsv($handle)) !== false) {
-            // Mapping: 0=Name, 1=Mobile, 2=Email, 3=City
-            $name = isset($row[0]) ? $this->sanitizeText($row[0]) : 'N/A';
-            $mobile = isset($row[1]) ? preg_replace('/[^0-9]/', '', $row[1]) : null;
-            $email = isset($row[2]) ? $this->sanitizeText($row[2]) : null;
-            $city = isset($row[3]) ? $this->sanitizeText($row[3]) : null;
+        $processLead = function ($data) use ($user, &$imported, &$duplicates, &$errors) {
+            $name = isset($data['name']) && trim($data['name']) !== '' ? $this->sanitizeText($data['name']) : 'Unknown';
+            $mobile = isset($data['mobile']) ? preg_replace('/[^0-9]/', '', $data['mobile']) : null;
+            $email = isset($data['email']) ? $this->sanitizeText($data['email']) : null;
+            $city = isset($data['city']) ? $this->sanitizeText($data['city']) : null;
 
-            if (empty($mobile)) {
+            if (empty($mobile) || strlen($mobile) < 7) {
                 $errors++;
-                continue;
+                return;
             }
 
             if (Lead::where('mobile', $mobile)->exists()) {
                 $duplicates++;
-                continue;
+                return;
             }
 
             try {
@@ -677,10 +764,65 @@ class LeadController extends Controller
             } catch (\Exception $e) {
                 $errors++;
             }
+        };
+
+        // Auto-detect format
+        $isVerticalFormat = false;
+        if (!empty($rows) && count($rows[0]) >= 2) {
+            $firstKey = strtolower(trim($rows[0][0], " \"',\r\n\t"));
+            if (in_array($firstKey, ['mobile', 'fullname', 'name', 'phone', 'email', 'contact'])) {
+                $isVerticalFormat = true;
+            }
         }
 
-        fclose($handle);
-        
+        if ($isVerticalFormat) {
+            $currentLead = [];
+            foreach ($rows as $row) {
+                if (count($row) < 2) continue;
+                
+                // Clean quotes and commas mapping to raw export formats
+                $key = strtolower(trim($row[0], " \"',\r\n\t"));
+                $val = trim($row[1] ?? '', " \"',\r\n\t");
+
+                if (in_array($key, ['mobile', 'phone', 'contact'])) {
+                    // Start of a new lead if mobile is encountered but already exists in the buffer
+                    if (isset($currentLead['mobile'])) {
+                        $processLead($currentLead);
+                        $currentLead = [];
+                    }
+                    $currentLead['mobile'] = $val;
+                } elseif (in_array($key, ['fullname', 'name', 'first name', 'last name'])) {
+                    if (isset($currentLead['name']) && $currentLead['name'] !== 'Unknown') {
+                        $currentLead['name'] .= ' ' . $val;
+                    } else {
+                        $currentLead['name'] = $val;
+                    }
+                } elseif ($key === 'email') {
+                    $currentLead['email'] = $val;
+                } elseif (in_array($key, ['city', 'location', 'address'])) {
+                    $currentLead['city'] = $val;
+                }
+            }
+            if (!empty($currentLead)) {
+                $processLead($currentLead);
+            }
+        } else {
+            // Standard tabular processing
+            if (!empty($rows)) {
+                array_shift($rows); // Skip header row
+            }
+            foreach ($rows as $row) {
+                if (count($row) < 2) continue;
+                $currentLead = [
+                    'name' => isset($row[0]) ? trim($row[0], " \"',\r\n\t") : 'Unknown',
+                    'mobile' => isset($row[1]) ? trim($row[1], " \"',\r\n\t") : null,
+                    'email' => isset($row[2]) ? trim($row[2], " \"',\r\n\t") : null,
+                    'city' => isset($row[3]) ? trim($row[3], " \"',\r\n\t") : null,
+                ];
+                $processLead($currentLead);
+            }
+        }
+
         $message = "Import complete. $imported leads added.";
         if ($duplicates > 0) $message .= " $duplicates duplicates skipped.";
         if ($errors > 0) $message .= " $errors invalid rows skipped.";
@@ -822,6 +964,48 @@ class LeadController extends Controller
         return back()->with('success', 'Message posted.');
     }
 
+    public function sendWhatsApp(Request $request, Lead $lead)
+    {
+        $user = auth()->user();
+        $this->authorizeLead($lead, $user);
+
+        $validated = $request->validate([
+            'template_id' => 'required|exists:message_templates,id',
+        ]);
+
+        $template = MessageTemplate::findOrFail($validated['template_id']);
+
+        if ($template->type !== 'whatsapp') {
+            return response()->json(['success' => false, 'message' => 'Selected template is not a WhatsApp template.']);
+        }
+
+        if (empty($lead->mobile)) {
+            return response()->json(['success' => false, 'message' => 'Lead does not have a valid mobile number.']);
+        }
+
+        $result = WhatsAppService::sendTemplate($lead->mobile, $template->name);
+
+        if ($result['success']) {
+            // Log successful message in timeline
+            $lead->messages()->create([
+                'user_id' => $user->id,
+                'message' => "WhatsApp Sent (Meta API): {$template->name}",
+            ]);
+            
+            // Add activity log
+            $lead->activities()->create([
+                'user_id' => $user->id,
+                'action' => 'Sent WhatsApp Message',
+                'details' => "Template '{$template->name}' was successfully sent via Meta API.",
+                'ip_address' => request()->ip(),
+            ]);
+
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['success' => false, 'message' => $result['message']]);
+    }
+
     public function bulkReassign(Request $request)
     {
         $user = auth()->user();
@@ -934,7 +1118,7 @@ class LeadController extends Controller
 
         $validated = $request->validate([
             'bulk_text' => 'required|string',
-            'format' => 'required|in:name_mobile,mobile_only,name_mobile_email',
+            'format' => 'required|in:name_mobile,mobile_only,name_mobile_email,vertical_kv',
         ]);
 
         $lines = explode("\n", $validated['bulk_text']);
@@ -942,63 +1126,108 @@ class LeadController extends Controller
         $duplicates = 0;
         $errors = [];
 
-        foreach ($lines as $lineNumber => $line) {
-            $line = trim($line);
-            if (empty($line)) {
-                continue;
+        if ($validated['format'] === 'vertical_kv') {
+            $currentLead = [];
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+
+                // Split by tab, comma, or pipe (max 2 parts to handle values with separators)
+                $parts = preg_split('/[,\t|]/', $line, 2);
+                if (count($parts) < 2) continue;
+
+                $key = strtolower(trim($parts[0]));
+                $value = trim($parts[1], " \t\n\r\0\x0B\""); // Strip quotes too
+
+                $normKey = null;
+                if (str_contains($key, 'fullname') || str_contains($key, 'name')) $normKey = 'name';
+                elseif (str_contains($key, 'mobile') || str_contains($key, 'phone')) $normKey = 'mobile';
+                elseif (str_contains($key, 'email')) $normKey = 'email';
+                elseif (str_contains($key, 'city') || str_contains($key, 'location')) $normKey = 'city';
+
+                if (!$normKey) continue;
+
+                // If we see a repeat of a key (e.g. another fullName), it means a new lead starts
+                if (isset($currentLead[$normKey])) {
+                    $res = $this->createLeadFromImport($currentLead, $user);
+                    if ($res === 'imported') $imported++;
+                    elseif ($res === 'duplicate') $duplicates++;
+                    $currentLead = [];
+                }
+                $currentLead[$normKey] = $value;
             }
+            // Process final lead in buffer
+            if (!empty($currentLead)) {
+                $res = $this->createLeadFromImport($currentLead, $user);
+                if ($res === 'imported') $imported++;
+                elseif ($res === 'duplicate') $duplicates++;
+            }
+        } else {
+            foreach ($lines as $lineNumber => $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
 
-            try {
-                $parts = preg_split('/[,\t|]/', $line);
-                $parts = array_map('trim', $parts);
+                try {
+                    $parts = preg_split('/[,\t|]/', $line);
+                    $parts = array_map('trim', $parts);
+                    
+                    $leadData = [];
+                    if ($validated['format'] === 'mobile_only') {
+                        $leadData['mobile'] = $parts[0] ?? null;
+                        $leadData['name'] = 'Lead ' . substr((string) ($leadData['mobile'] ?? '0000'), -4);
+                    } elseif ($validated['format'] === 'name_mobile') {
+                        $leadData['name'] = $parts[0] ?? 'N/A';
+                        $leadData['mobile'] = $parts[1] ?? null;
+                    } elseif ($validated['format'] === 'name_mobile_email') {
+                        $leadData['name'] = $parts[0] ?? 'N/A';
+                        $leadData['mobile'] = $parts[1] ?? null;
+                        $leadData['email'] = $parts[2] ?? null;
+                    }
 
-                $leadData = [
-                    'source' => 'Bulk Text Import',
-                    'assigned_by' => $user->id,
-                    'status' => 'Cold Lead',
-                ];
-
-                if ($validated['format'] === 'mobile_only') {
-                    $mobile = $parts[0] ?? null;
-                    $leadData['name'] = 'Lead ' . substr((string) $mobile, -4);
-                    $leadData['mobile'] = $mobile;
-                } elseif ($validated['format'] === 'name_mobile') {
-                    $leadData['name'] = $parts[0] ?? 'N/A';
-                    $leadData['mobile'] = $parts[1] ?? null;
-                } elseif ($validated['format'] === 'name_mobile_email') {
-                    $leadData['name'] = $parts[0] ?? 'N/A';
-                    $leadData['mobile'] = $parts[1] ?? null;
-                    $leadData['email'] = $parts[2] ?? null;
+                    $res = $this->createLeadFromImport($leadData, $user);
+                    if ($res === 'imported') $imported++;
+                    elseif ($res === 'duplicate') $duplicates++;
+                    elseif ($res === 'error') $errors[] = 'Line ' . ($lineNumber + 1) . ': Missing mobile number';
+                } catch (\Exception $e) {
+                    $errors[] = 'Line ' . ($lineNumber + 1) . ': ' . $e->getMessage();
                 }
-
-                if (empty($leadData['mobile'])) {
-                    $errors[] = 'Line ' . ($lineNumber + 1) . ': Missing mobile number';
-                    continue;
-                }
-
-                if (Lead::where('mobile', $leadData['mobile'])->exists()) {
-                    $duplicates++;
-                    continue;
-                }
-
-                $lead = Lead::create($this->sanitizeArray($leadData));
-                $this->scorer->updateScore($lead);
-                $imported++;
-
-            } catch (\Exception $e) {
-                $errors[] = 'Line ' . ($lineNumber + 1) . ': ' . $e->getMessage();
             }
         }
 
         $message = 'Import complete. ' . $imported . ' leads added';
-        if ($duplicates > 0) {
-            $message .= ', ' . $duplicates . ' duplicates skipped';
-        }
-        if (count($errors) > 0) {
-            $message .= ', ' . count($errors) . ' errors';
-        }
+        if ($duplicates > 0) $message .= ', ' . $duplicates . ' duplicates skipped';
+        if (count($errors) > 0) $message .= ', ' . count($errors) . ' errors';
 
         return redirect()->route('leads.index')->with('success', $message);
+    }
+
+    private function createLeadFromImport(array $data, $user): string
+    {
+        if (empty($data['mobile'])) return 'error';
+        
+        $mobile = preg_replace('/[^0-9]/', '', $data['mobile']);
+        if (empty($mobile)) return 'error';
+
+        if (Lead::where('mobile', $mobile)->exists()) {
+            return 'duplicate';
+        }
+
+        $lead = Lead::create($this->sanitizeArray([
+            'name' => $data['name'] ?? 'N/A',
+            'mobile' => $mobile,
+            'email' => $data['email'] ?? null,
+            'city' => $data['city'] ?? null,
+            'status' => 'Cold Lead',
+            'lead_score' => 10,
+            'source' => 'Bulk Text Import',
+            'assigned_by' => $user->id
+        ]));
+
+        if (isset($this->scorer)) {
+            $this->scorer->updateScore($lead);
+        }
+
+        return 'imported';
     }
 
     public function saveNotes(Request $request, Lead $lead)
@@ -1119,5 +1348,17 @@ class LeadController extends Controller
             }
         }
         return $input;
+    }
+    public function destroy(Lead $lead)
+    {
+        $user = auth()->user();
+        if (!$user || $user->role !== 'Admin') {
+            abort(403);
+        }
+
+        // The database handles cascading deletes for activities, payments, etc.
+        $lead->delete();
+
+        return redirect()->route('leads.index')->with('success', 'Lead and all associated data deleted successfully.');
     }
 }

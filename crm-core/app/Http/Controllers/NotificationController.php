@@ -50,9 +50,8 @@ class NotificationController extends Controller
             // Latest Advisory Call ID + Text
             $latestAdvisory = \App\Models\AdvisoryCall::latest('id')->first();
             $latestAdvisoryId = $latestAdvisory->id ?? 0;
-            $latestAdvisoryText = $latestAdvisory
-                ? ($latestAdvisory->segment . ' | ' . $latestAdvisory->stock_name . ' | ' . $latestAdvisory->action_type . ' @ INR ' . $latestAdvisory->entry_price . ' | SL: INR ' . $latestAdvisory->stoploss . ' | TGT: INR ' . $latestAdvisory->target)
-                : '';
+            // Use call_text since other fields (stock_name, etc) don't exist in the model
+            $latestAdvisoryText = $latestAdvisory ? $latestAdvisory->call_text : '';
 
             // Latest System Announcement ID
             $latestAnnouncementId = \App\Models\SystemAnnouncement::where('expires_at', '>', now())->max('id') ?? 0;
@@ -121,6 +120,13 @@ class NotificationController extends Controller
                 'due_followups' => [], // Placeholder - filled below
                 'ticker_message' => \App\Models\SystemSetting::get('ticker_message', ''),
                 'ticker_urgency' => \App\Models\SystemSetting::get('ticker_urgency', 'normal'),
+                'leads_count' => \App\Models\Lead::where('assigned_to', $user->id)
+                    ->whereNotIn('status', ['Lost', 'Junk', 'Not Interested', 'Paid Client', 'Service Expired'])
+                    ->count(),
+                'academy_alert' => \App\Models\TrainingModule::where('created_at', '>', now()->subDays(7))
+                    ->whereDoesntHave('logs', function ($q) use ($user) {
+                        $q->where('user_id', $user->id);
+                    })->count() > 0,
             ];
         });
 
@@ -152,6 +158,12 @@ class NotificationController extends Controller
         $newAnnouncement = null;
         if ($request->has('last_announcement_id') && $cachedData['latest_announcement_id'] > (int) $request->last_announcement_id) {
             $newAnnouncement = \App\Models\SystemAnnouncement::find($cachedData['latest_announcement_id']);
+            
+            // CONSOLIDATION FIX: If this is a Market Call announcement, 
+            // empty the advisory text to prevent double toasts in the frontend
+            if ($newAnnouncement && (str_contains($newAnnouncement->title, 'Market Call') || str_contains($newAnnouncement->title, '📈'))) {
+                $cachedData['latest_advisory_text'] = '';
+            }
         }
         $cachedData['new_announcement'] = $newAnnouncement;
 

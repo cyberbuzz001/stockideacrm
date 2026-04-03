@@ -1,4 +1,4 @@
-@props(['href', 'active', 'icon', 'label', 'badge' => null, 'pulseAlert' => false])
+@props(['href', 'active', 'icon', 'label', 'badge' => null, 'badgeId' => null, 'pulseAlert' => false, 'pulseId' => null])
 
 @php
     $icons = [
@@ -35,14 +35,12 @@
     </svg>
     <span class="font-medium truncate">{{ $label }}</span>
     
-    @if($badge !== null && $badge > 0)
-    <span class="ml-auto bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white">
-        {{ $badge }}
+    <span @if($badgeId) id="{{ $badgeId }}" @endif class="ml-auto bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white {{ ($badge === null || $badge <= 0) ? 'hidden' : '' }}">
+        {{ $badge ?? '' }}
     </span>
-    @elseif($pulseAlert)
-    <span class="ml-auto flex h-2 w-2">
+    
+    <span @if($pulseId) id="{{ $pulseId }}" @endif class="ml-auto flex h-2 w-2 {{ !$pulseAlert ? 'hidden' : '' }}">
         <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#EF4444] opacity-75"></span>
         <span class="relative inline-flex rounded-full h-2 w-2 bg-[#EF4444]"></span>
     </span>
-    @endif
 </a>

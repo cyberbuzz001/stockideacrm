@@ -65,17 +65,26 @@ Route::middleware('auth')->group(function () {
 
     // AI CRM Routes
     Route::middleware([\App\Http\Middleware\CheckMandatoryTraining::class])->group(function () {
-        Route::resource('leads', LeadController::class);
         Route::post('leads/fetch', [LeadController::class, 'fetchLeads'])->name('leads.fetch');
         Route::get('leads/export', [LeadController::class, 'export'])->name('leads.export');
         Route::post('leads/import', [LeadController::class, 'import'])->name('leads.import');
         Route::post('leads/bulk-text-import', [LeadController::class, 'bulkTextImport'])->name('leads.bulk-text-import');
+        Route::post('leads/bulk-delete', [LeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
+        Route::get('leads/assign', function () {
+            return redirect()->route('leads.index')->with('error', 'Please use the Assign button from the leads list or lead detail page.');
+        })->name('leads.assign.get');
+        Route::post('leads/assign', [LeadController::class, 'assign'])->name('leads.assign');
+        Route::post('leads/bulk-status', [LeadController::class, 'bulkStatus'])->name('leads.bulk-status');
+        Route::post('leads/auto-distribute', [LeadController::class, 'autoDistribute'])->name('leads.auto-distribute');
+        
+        Route::resource('leads', LeadController::class);
     });
 
     Route::post('leads/{lead}/start-call', [LeadController::class, 'startCall'])->name('leads.start-call');
     Route::post('leads/{lead}/activity', [LeadController::class, 'storeActivity'])->name('leads.activity');
     Route::post('leads/{lead}/notes', [LeadController::class, 'saveNotes'])->name('leads.notes');
     Route::post('leads/{lead}/messages', [LeadController::class, 'storeMessage'])->name('leads.messages');
+    Route::post('leads/{lead}/send-whatsapp', [LeadController::class, 'sendWhatsApp'])->name('leads.send-whatsapp');
     Route::post('leads/{lead}/update-rich-details', [LeadController::class, 'updateRichDetails'])->name('leads.update-rich-details');
     Route::post('leads/{lead}/quick-log', [LeadController::class, 'quickLog'])->name('leads.quick-log');
     Route::post('leads/{lead}/escalate', [LeadController::class, 'escalate'])->name('leads.escalate');
@@ -83,10 +92,6 @@ Route::middleware('auth')->group(function () {
     Route::post('leads/{lead}/compliance/expiry', [LeadController::class, 'updateComplianceExpiry'])->name('leads.compliance.expiry');
     Route::post('leads/{lead}/consent/grant', [LeadController::class, 'grantConsent'])->name('leads.consent.grant');
     Route::post('leads/{lead}/consent/revoke', [LeadController::class, 'revokeConsent'])->name('leads.consent.revoke');
-    Route::post('leads/bulk-delete', [LeadController::class, 'bulkDelete'])->name('leads.bulk-delete');
-    Route::post('leads/assign', [LeadController::class, 'assign'])->name('leads.assign');
-    Route::post('leads/bulk-status', [LeadController::class, 'bulkStatus'])->name('leads.bulk-status');
-    Route::post('leads/auto-distribute', [LeadController::class, 'autoDistribute'])->name('leads.auto-distribute');
     Route::post('leads/{lead}/documents', [LeadDocumentController::class, 'upload'])->name('leads.documents.upload');
     Route::get('documents/{token}', [LeadDocumentController::class, 'download'])->name('documents.download');
 
@@ -103,11 +108,13 @@ Route::middleware('auth')->group(function () {
     Route::get('payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::post('payments/{payment}/verify', [PaymentController::class, 'verify'])->name('payments.verify');
     Route::get('payments/{payment}/invoice', [PaymentController::class, 'invoice'])->name('payments.invoice');
+    Route::delete('payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
 
     // Paid Clients Module (Sections 11-12)
     Route::get('clients/retention', [ClientController::class, 'retention'])->name('clients.retention');
     Route::resource('clients', ClientController::class);
     Route::post('clients/{client}/renewal', [ClientController::class, 'updateRenewal'])->name('clients.renewal');
+    Route::post('clients/{client}/revert', [ClientController::class, 'revert'])->name('clients.revert');
     Route::post('clients/{client}/payments', [ClientController::class, 'storePayment'])->name('clients.payments.store');
 
     Route::get('sales-orders', [PaymentController::class, 'salesOrders'])->name('payments.sales-orders');
@@ -170,6 +177,7 @@ Route::middleware('auth')->group(function () {
 
     // KYC / RPM Compliance — All Employees
     Route::get('/kyc-rpm', [KycRpmController::class, 'index'])->name('kyc-rpm.index');
+    Route::post('/kyc-rpm/{lead}/update-data', [KycRpmController::class, 'updateData'])->name('kyc-rpm.update-data');
     Route::get('/leads/{lead}/kyc-rpm', [KycRpmController::class, 'show'])->name('kyc-rpm.show');
 
     // Advisory Calls (Market Call Distribution)

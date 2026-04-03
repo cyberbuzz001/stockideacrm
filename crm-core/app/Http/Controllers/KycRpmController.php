@@ -15,8 +15,21 @@ class KycRpmController extends Controller
         }
 
         $user = auth()->user();
-        if (!$user->hasPermission('compliance', 'view_kyc') && (int) $lead->assigned_to !== (int) $user->id) {
-             abort(403);
+        $isAuthorized = false;
+
+        if ($user->hasPermission('compliance', 'view_kyc')) {
+            $isAuthorized = true;
+        } elseif (in_array($user->role, ['Team Leader', 'SBA', 'Manager'], true)) {
+            $teamIds = $user->getAllTeamIds();
+            if (in_array((int) $lead->assigned_to, $teamIds, true)) {
+                $isAuthorized = true;
+            }
+        } elseif ((int) $lead->assigned_to === (int) $user->id) {
+            $isAuthorized = true;
+        }
+
+        if (!$isAuthorized) {
+            abort(403);
         }
 
         $lead->load(['documents', 'consents', 'compliance', 'complianceSteps']);
@@ -67,5 +80,27 @@ class KycRpmController extends Controller
         });
 
         return view('kyc-rpm.index', compact('leads'));
+    }
+
+    public function updateData(Request $request, Lead $lead)
+    {
+        $user = auth()->user();
+        if ($lead->assigned_to !== $user->id && !$user->hasPermission('compliance', 'view_kyc')) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'pan_number' => 'nullable|string|max:20',
+            'aadhaar_number' => 'nullable|string|max:20',
+            'demat_id' => 'nullable|string|max:50',
+        ]);
+
+        $lead->update($validated);
+
+        // Standard Audit Logging
+        if ($request->has('pan_number')) DataAccessLogger::log($user, $lead, 'pan_number', 'update', $request);
+        if ($request->has('aadhaar_number')) DataAccessLogger::log($user, $lead, 'aadhaar_number', 'update', $request);
+
+        return back()->with('success', 'Compliance data updated successfully.');
     }
 }

@@ -30,11 +30,19 @@
             </div>
         @endif
         @if(session('warning'))
-            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-bold flex items-center gap-3 shadow-sm animate-fadeIn">
-                <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div class="p-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-bold flex items-center gap-3 shadow-sm animate-fadeIn">
+                <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </div>
                 {{ session('warning') }}
+            </div>
+        @endif
+        @if(session('error'))
+            <div class="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-bold flex items-center gap-3 shadow-sm animate-fadeIn">
+                <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                {{ session('error') }}
             </div>
         @endif
 
@@ -150,15 +158,28 @@
                                             <div class="flex items-center gap-2 mt-0.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                 <span>{{ $vp->payment_date ? $vp->payment_date->format('d M y') : $vp->created_at->format('d M y') }}</span>
                                                 <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                <span class="text-indigo-500">Agent: {{ $vp->user->name ?? 'N/A' }}</span>
+                                                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
                                                 <span>{{ $vp->payment_mode }}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="font-black text-emerald-600 text-base">INR {{ number_format($vp->amount) }}</p>
-                                        <a href="{{ route('payments.invoice', $vp) }}" target="_blank" class="text-[10px] font-bold text-indigo-400 hover:text-indigo-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                                            Invoice ↗
-                                        </a>
+                                    <div class="text-right flex flex-col items-end gap-1">
+                                        <p class="font-black text-emerald-600 text-base leading-none">INR {{ number_format($vp->amount) }}</p>
+                                        <div class="flex items-center gap-2">
+                                            <a href="{{ route('payments.invoice', $vp) }}" target="_blank" class="text-[10px] font-bold text-indigo-400 hover:text-indigo-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Invoice ↗
+                                            </a>
+                                            @if(auth()->user()->role === 'Admin')
+                                                <form action="{{ route('payments.destroy', $vp) }}" method="POST" onsubmit="return confirm('DELETE PAYMENT: This will remove this entry from the ledger permanently. This action is audited. Continue?');" class="inline opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" title="Remove from Ledger" class="text-rose-400 hover:text-rose-600">
+                                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             @endforeach
@@ -192,24 +213,44 @@
                                             <div class="mt-2 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                                                 <span>{{ $payment->payment_mode }}</span>
                                                 <span class="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                <span>Agent: {{ explode(' ', $payment->lead->assignee->name ?? 'None')[0] }}</span>
+                                                <span>Credited Agent: {{ $payment->user->name ?? 'None' }}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="bg-slate-50/80 px-4 py-3 border-t border-slate-100 flex flex-col gap-2">
-                                        <form action="{{ route('payments.verify', $payment) }}" method="POST" class="flex flex-col gap-2 w-full">
-                                            @csrf
-                                            <input type="text" name="remarks" placeholder="Add remarks..." class="text-xs border-slate-200 rounded-lg px-3 py-2 w-full focus:ring-indigo-500 shadow-sm font-medium">
-                                            <div class="flex gap-2 w-full">
-                                                <button name="action" value="approve" class="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-emerald-700 transition-colors shadow-sm">
-                                                    Verify
-                                                </button>
-                                                <button name="action" value="reject" class="flex-1 bg-white border border-rose-200 text-rose-600 py-2 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-rose-50 transition-colors">
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                    @if(in_array(auth()->user()->role, ['Admin', 'Manager']))
+                                        <div class="bg-slate-50/80 px-4 py-3 border-t border-slate-100 flex flex-col gap-2">
+                                            <form action="{{ route('payments.verify', $payment) }}" method="POST" class="flex flex-col gap-2 w-full">
+                                                @csrf
+                                                <input type="text" name="remarks" placeholder="Add remarks..." class="text-xs border-slate-200 rounded-lg px-3 py-2 w-full focus:ring-indigo-500 shadow-sm font-medium">
+                                                <div class="flex gap-2 w-full">
+                                                    <button name="action" value="approve" class="flex-1 bg-emerald-600 text-white py-2 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-emerald-700 transition-colors shadow-sm">
+                                                        Verify
+                                                    </button>
+                                                    <button name="action" value="reject" class="flex-1 bg-white border border-rose-200 text-rose-600 py-2 rounded-lg text-[10px] uppercase font-black tracking-widest hover:bg-rose-50 transition-colors">
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            </form>
+                                            
+                                            @if(auth()->user()->role === 'Admin')
+                                                <div class="flex justify-end -mt-10 mb-2 mr-2"> <!-- Absolute or relative positioning can work, but for simplicity let's just detach from form -->
+                                                    <button type="button" 
+                                                            onclick="if(confirm('Delete this verification request?')) { 
+                                                                const form = document.createElement('form');
+                                                                form.method = 'POST';
+                                                                form.action = '{{ route('payments.destroy', $payment) }}';
+                                                                form.innerHTML = '@csrf @method('DELETE')';
+                                                                document.body.appendChild(form);
+                                                                form.submit();
+                                                            }"
+                                                            class="bg-rose-50 text-rose-600 p-2 rounded-lg border border-rose-100 hover:bg-rose-100 transition-colors shadow-sm"
+                                                            title="Delete Payment Request">
+                                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>

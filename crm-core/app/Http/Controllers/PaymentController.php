@@ -14,32 +14,45 @@ class PaymentController extends Controller
     public function index()
     {
         $user = auth()->user();
-        if (!$user || !in_array($user->role, ['Admin', 'Manager'])) {
+        if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA', 'BA'])) {
             abort(403);
         }
 
-        $totalCollected = Payment::where('status', 'Verified')->sum('amount');
-        $thisMonth = Payment::where('status', 'Verified')
+        $baseQuery = Payment::query();
+        if ($user->role === 'BA') {
+            $baseQuery->where('user_id', $user->id);
+        } elseif ($user->role === 'SBA' || $user->role === 'Manager') {
+            // Managers also see their team's data, although initially it was global.
+            // If they are Admin, they see everything.
+            if ($user->role !== 'Admin') {
+                $teamIds = $user->getAllTeamIds();
+                $baseQuery->whereIn('user_id', $teamIds);
+            }
+        }
+
+        $totalCollected = (clone $baseQuery)->where('status', 'Verified')->sum('amount');
+        $thisMonth = (clone $baseQuery)->where('status', 'Verified')
             ->whereMonth('payment_date', now()->month)
             ->whereYear('payment_date', now()->year)
             ->sum('amount');
-        $thisWeek = Payment::where('status', 'Verified')
+        $thisWeek = (clone $baseQuery)->where('status', 'Verified')
             ->whereBetween('payment_date', [now()->startOfWeek(), now()->endOfWeek()])
             ->sum('amount');
 
-        $lastMonth = Payment::where('status', 'Verified')
+        $lastMonth = (clone $baseQuery)->where('status', 'Verified')
             ->whereMonth('payment_date', now()->subMonth()->month)
             ->whereYear('payment_date', now()->subMonth()->year)
             ->sum('amount');
         $momGrowth = $lastMonth > 0 ? (($thisMonth - $lastMonth) / $lastMonth) * 100 : ($thisMonth > 0 ? 100 : 0);
 
-        $lastWeek = Payment::where('status', 'Verified')
+        $lastWeek = (clone $baseQuery)->where('status', 'Verified')
             ->whereBetween('payment_date', [now()->subWeek()->startOfWeek(), now()->subWeek()->endOfWeek()])
             ->sum('amount');
         $wowGrowth = $lastWeek > 0 ? (($thisWeek - $lastWeek) / $lastWeek) * 100 : ($thisWeek > 0 ? 100 : 0);
-        $pendingCount = Payment::where('status', 'Pending')->count();
+        
+        $pendingCount = (clone $baseQuery)->where('status', 'Pending')->count();
 
-        $monthlyTrendRaw = Payment::where('status', 'Verified')
+        $monthlyTrendRaw = (clone $baseQuery)->where('status', 'Verified')
             ->where('payment_date', '>=', now()->subMonths(5)->startOfMonth())
             ->get();
 
@@ -53,12 +66,12 @@ class PaymentController extends Controller
             ];
         })->sortBy('month_key')->values();
 
-        $verifiedPayments = Payment::with(['lead.assignee', 'user'])
+        $verifiedPayments = (clone $baseQuery)->with(['lead.assignee', 'user'])
             ->where('status', 'Verified')
             ->latest('payment_date')
             ->paginate(15);
 
-        $payments = Payment::with(['lead.assignee'])
+        $payments = (clone $baseQuery)->with(['lead.assignee', 'user'])
             ->where('status', 'Pending')
             ->latest()
             ->paginate(15);
@@ -124,10 +137,19 @@ class PaymentController extends Controller
 
                 \App\Models\SystemAnnouncement::create([
                     'title' => 'Payment Verified',
-                    'body' => 'INR ' . number_format((float) $payment->amount, 2) . ' collected by ' . ($lead->assignee->name ?? 'Agent'),
+                    'body' => 'INR ' . number_format((float) $payment->amount, 2) . ' collected by ' . ($payment->user->name ?? 'Agent'),
                     'type' => 'success',
                     'expires_at' => now()->addHours(24)
                 ]);
+
+                // Trigger Cash Ring (Reverb) for 9999+
+                if ((float) $payment->amount >= 9999) {
+                    broadcast(new \App\Events\PaymentReceived(
+                        $payment->user->name ?? 'Agent',
+                        (float) $payment->amount,
+                        $lead->name ?? 'Client'
+                    ))->toOthers();
+                }
             });
 
             return redirect()->back()->with('success', 'Payment approved and Lead upgraded to Paid Client.');
@@ -168,11 +190,33 @@ class PaymentController extends Controller
             abort(403);
         }
 
-        $payments = Payment::with(['lead.assignee'])
+        $payments = Payment::with(['lead.assignee', 'user'])
             ->where('status', 'Verified')
             ->latest('payment_date')
             ->paginate(15);
-
+        
         return view('payments.sales_orders', compact('payments'));
+
+    }
+
+    public function destroy(Payment $payment)
+    {
+        $user = auth()->user();
+        if (!$user || $user->role !== 'Admin') {
+            abort(403);
+        }
+
+        $lead = $payment->lead;
+        if ($lead) {
+            $lead->activities()->create([
+                'user_id' => $user->id,
+                'activity_type' => 'Payment Deleted',
+                'notes' => 'Administrator deleted the payment of INR ' . number_format((float) $payment->amount, 2) . ' from the ledger.'
+            ]);
+        }
+
+        $payment->delete();
+
+        return redirect()->back()->with('success', 'Payment record deleted successfully.');
     }
 }

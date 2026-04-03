@@ -203,7 +203,7 @@
             </div>
 
             <!-- Add Payment Modal -->
-            <div x-data="{ showModal: false }" x-on:open-payment-modal.window="showModal = true" x-show="showModal"
+            <div x-data="{ showModal: false, isSplitPayment: false }" x-on:open-payment-modal.window="showModal = true" x-show="showModal"
                 class="fixed inset-0 z-[9999] overflow-y-auto" x-on:keydown.escape.window="showModal = false" x-cloak>
                 <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                     <div x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0"
@@ -233,13 +233,45 @@
                                 </div>
 
                                 <div class="space-y-4">
-                                    <div>
-                                        <label
-                                            class="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Amount
-                                            (INR)</label>
-                                        <input type="number" name="amount" required step="0.01" min="1"
+                                    <!-- Split Payment Toggle -->
+                                    <div class="mb-2">
+                                        <label class="flex items-center space-x-2 text-sm text-green-800 font-bold cursor-pointer">
+                                            <input type="checkbox" name="is_split_payment" x-model="isSplitPayment" class="rounded text-green-600 focus:ring-green-500">
+                                            <span class="ml-2">Split Payment between SBA/TL and BA?</span>
+                                        </label>
+                                    </div>
+
+                                    <div x-show="!isSplitPayment">
+                                        <label class="block text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1">Amount (INR)</label>
+                                        <input type="number" name="amount" step="0.01" min="1"
                                             class="w-full rounded-2xl border-slate-100 bg-slate-50 font-bold text-slate-900 focus:ring-indigo-500 focus:border-indigo-500"
                                             placeholder="e.g. 5000">
+                                    </div>
+
+                                    <!-- Split Payment Mode -->
+                                    <div x-show="isSplitPayment" class="space-y-3 p-4 bg-slate-50 border border-slate-100 rounded-2xl shadow-inner">
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="text-[10px] font-black uppercase text-indigo-600 mb-1 block">Split 1</label>
+                                                <select name="split_1_user_id" class="w-full border-slate-200 rounded-xl p-2 text-xs text-gray-700 mb-2 focus:ring-indigo-500">
+                                                    @if($client->assignee)
+                                                        <option value="{{ $client->assignee->id }}">{{ $client->assignee->name }} (Advisor)</option>
+                                                    @endif
+                                                    <option value="{{ auth()->user()->id }}" {{ (!$client->assignee || $client->assignee->id === auth()->user()->id) ? 'selected' : '' }}>{{ auth()->user()->name }} (Logged by)</option>
+                                                </select>
+                                                <input type="number" name="split_1_amount" placeholder="Amount 1 (e.g. 13900)" class="w-full border-slate-200 rounded-xl p-2 text-xs font-bold text-indigo-700 placeholder-indigo-200 focus:ring-indigo-500">
+                                            </div>
+                                            <div>
+                                                <label class="text-[10px] font-black uppercase text-rose-600 mb-1 block">Split 2</label>
+                                                <select name="split_2_user_id" class="w-full border-slate-200 rounded-xl p-2 text-xs text-gray-700 mb-2 focus:ring-rose-500">
+                                                    <option value="{{ auth()->user()->id }}" selected>{{ auth()->user()->name }} (Logged by)</option>
+                                                    @if($client->assignee && $client->assignee->id !== auth()->user()->id)
+                                                        <option value="{{ $client->assignee->id }}">{{ $client->assignee->name }} (Advisor)</option>
+                                                    @endif
+                                                </select>
+                                                <input type="number" name="split_2_amount" placeholder="Amount 2 (e.g. 13900)" class="w-full border-slate-200 rounded-xl p-2 text-xs font-bold text-rose-700 placeholder-rose-200 focus:ring-rose-500">
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div>

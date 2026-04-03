@@ -33,6 +33,13 @@
             class="absolute -bottom-8 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000">
         </div>
 
+        <!-- Logo Watermark -->
+        @if($company_logo)
+            <div class="absolute inset-0 z-0 pointer-events-none opacity-[0.04] flex items-center justify-center overflow-hidden">
+                <img src="{{ Storage::url($company_logo) }}" alt="Watermark" class="w-[800px] h-[800px] object-contain transform -rotate-12 grayscale blur-[1px]">
+            </div>
+        @endif
+
         <div class="z-10 text-center px-4">
             <div class="mb-8 inline-block">
                 <div class="text-5xl md:text-7xl font-black text-indigo-600 tracking-tighter drop-shadow-sm uppercase">

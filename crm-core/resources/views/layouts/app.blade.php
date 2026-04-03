@@ -1,5 +1,17 @@
-<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="">
+@php
+    $userCount = Auth::user();
+    $initialLeadsCount = 0;
+    $initialAcademyAlert = false;
+    if ($userCount) {
+        $initialLeadsCount = \App\Models\Lead::where('assigned_to', $userCount->id)
+            ->whereNotIn('status', ['Lost', 'Junk', 'Not Interested', 'Paid Client', 'Service Expired'])
+            ->count();
+        $initialAcademyAlert = \App\Models\TrainingModule::whereDoesntHave('logs', function ($q) use ($userCount) {
+            $q->where('user_id', $userCount->id);
+        })->count() > 0;
+    }
+@endphp
 
 <head>
     <meta charset="utf-8">
@@ -49,6 +61,94 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link href="{{ asset('css/dashboard-premium.css') }}" rel="stylesheet">
+    <script src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
+    <script>
+        window.Pusher = Pusher;
+        window.Echo = new Echo({
+            broadcaster: 'reverb',
+            key: '{{ env('REVERB_APP_KEY') }}',
+            wsHost: '{{ env('REVERB_HOST') }}',
+            wsPort: {{ env('REVERB_PORT', 80) }},
+            forceTLS: false,
+            enabledTransports: ['ws', 'wss'],
+        });
+
+        // Cash Ring Listener
+        window.Echo.channel('sales-alerts')
+            .listen('.payment.received', (e) => {
+                showCashRing(e);
+            });
+
+        function showCashRing(data) {
+            // Play Cash Register Sound
+            try {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3');
+                audio.play().catch(err => console.log('Audio play failed:', err));
+            } catch(e) {}
+
+            // Create Overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md animate-fade-in';
+            overlay.innerHTML = `
+                <div class="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800 p-1 rounded-3xl shadow-[0_0_50px_rgba(79,70,229,0.5)] transform scale-90 opacity-0 transition-all duration-500" id="ring-card">
+                    <div class="bg-slate-900 rounded-[22px] p-8 text-center relative overflow-hidden">
+                        <!-- Animated Background Particles -->
+                        <div class="absolute inset-0 overflow-hidden opacity-20 pointer-events-none">
+                            <div class="absolute top-0 left-1/4 w-32 h-32 bg-indigo-500 rounded-full blur-3xl animate-pulse"></div>
+                            <div class="absolute bottom-0 right-1/4 w-32 h-32 bg-purple-500 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s"></div>
+                        </div>
+                        
+                        <div class="relative z-10">
+                            <div class="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-6 ring-4 ring-indigo-500/30 animate-bounce">
+                                <span class="text-4xl">💰</span>
+                            </div>
+                            <h2 class="text-3xl font-black text-white mb-2 uppercase tracking-tighter">Big Win!</h2>
+                            <p class="text-indigo-300 font-bold uppercase tracking-widest text-[10px] mb-6">High Value Conversion Secured</p>
+                            
+                            <div class="space-y-4 mb-8">
+                                <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                                    <p class="text-[10px] text-indigo-300 font-black uppercase mb-1">Top Closer</p>
+                                    <p class="text-xl font-black text-white">${data.agentName}</p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-emerald-500/10 rounded-2xl p-4 border border-emerald-500/20">
+                                        <p class="text-[10px] text-emerald-400 font-black uppercase mb-1">Amount</p>
+                                        <p class="text-lg font-black text-emerald-300">₹${new Intl.NumberFormat().format(data.amount)}</p>
+                                    </div>
+                                    <div class="bg-white/5 rounded-2xl p-4 border border-white/10">
+                                        <p class="text-[10px] text-indigo-300 font-black uppercase mb-1">Client</p>
+                                        <p class="text-lg font-black text-white truncate">${data.leadName}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button onclick="this.closest('.fixed').remove()" class="w-full bg-white text-indigo-900 font-black py-4 rounded-2xl shadow-xl hover:bg-indigo-50 transition-all active:scale-95 uppercase tracking-widest text-sm">
+                                Let's Go! 🚀
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            
+            // Animate In
+            setTimeout(() => {
+                const card = document.getElementById('ring-card');
+                if (card) {
+                    card.classList.remove('scale-90', 'opacity-0');
+                    card.classList.add('scale-100', 'opacity-100');
+                }
+            }, 100);
+
+            // Auto Remove after 10s
+            setTimeout(() => {
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.remove(), 500);
+            }, 10000);
+        }
+    </script>
 
     <style>
         body { font-family: 'DM Sans', sans-serif; background-color: #F8F9FB; }
@@ -118,22 +218,40 @@
     </script>
 </head>
 
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased transition-colors duration-300" x-data="{ sidebarOpen: true }">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased transition-colors duration-300" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
 
     <div class="flex h-screen overflow-hidden">
 
         <!-- ═══════════════════════════════════════════
              SIDEBAR
         ═══════════════════════════════════════════ -->
-        <!-- ═══════════════════════════════════════════
-             SIDEBAR (Fixed 220px)
-        ═══════════════════════════════════════════ -->
-        <aside class="sidebar-nav fixed inset-y-0 left-0 z-40 flex flex-col bg-white border-r border-[#E5E7EB] overflow-y-auto transition-all duration-300 w-[220px]">
+        <!-- Mobile Overlay (Backdrop for mobile drawer) -->
+        <div x-show="sidebarOpen" 
+             @click="sidebarOpen = false" 
+             x-show="sidebarOpen"
+             x-transition:enter="transition-opacity ease-linear duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-linear duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="lg:hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40" 
+             style="display: none;"></div>
+
+        <aside 
+            x-show="sidebarOpen"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="-translate-x-full"
+            x-transition:enter-end="translate-x-0"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="translate-x-0"
+            x-transition:leave-end="-translate-x-full"
+            class="sidebar-nav fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-[#E5E7EB] overflow-x-hidden overflow-y-auto w-[220px]">
             
             <!-- Logo -->
-            <div class="flex items-center gap-2.5 px-5 py-6 flex-shrink-0">
+            <div class="flex items-center gap-2.5 px-5 py-6 flex-shrink-0 max-w-full overflow-hidden">
                 @if($company_logo)
-                    <img src="{{ asset('storage/' . $company_logo) }}" alt="Logo" class="w-[30px] h-[30px] rounded-[6px] object-cover">
+                    <img src="{{ asset('storage/' . $company_logo) }}" alt="Logo" style="width: 30px; height: 30px; min-width: 30px;" class="rounded-[6px] object-cover">
                 @else
                     <div class="w-[30px] h-[30px] rounded-[6px] bg-[#4F46E5] flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
                         {{ substr($company_name, 0, 1) }}
@@ -153,12 +271,12 @@
                     <div class="space-y-0.5">
                         <x-nav-link-premium :href="route('dashboard')" :active="request()->routeIs('dashboard')" icon="layout" label="Dashboard" />
                         @if(Auth::user()->hasPermission('leads', 'view_all') || Auth::user()->hasPermission('leads', 'view_team') || Auth::user()->hasPermission('leads', 'view_own'))
-                        <x-nav-link-premium :href="route('leads.index')" :active="request()->routeIs('leads.*')" icon="users" label="Leads" :badge="24" />
+                        <x-nav-link-premium :href="route('leads.index')" :active="request()->routeIs('leads.*')" icon="users" label="Leads" :badge="$initialLeadsCount" badgeId="sidebar-leads-count" />
                         @endif
                         @if(Auth::user()->hasPermission('clients', 'view_all') || Auth::user()->hasPermission('clients', 'view_team') || Auth::user()->hasPermission('clients', 'view_own'))
                         <x-nav-link-premium :href="route('clients.index')" :active="request()->routeIs('clients.*')" icon="user-check" label="Clients" />
                         @endif
-                        <x-nav-link-premium href="{{ route('agent.learning.index') }}" :active="request()->routeIs('agent.learning.*')" icon="graduation-cap" label="My Academy" :pulseAlert="true" />
+                        <x-nav-link-premium href="{{ route('agent.learning.index') }}" :active="request()->routeIs('agent.learning.*')" icon="graduation-cap" label="My Academy" :pulseAlert="$initialAcademyAlert" pulseId="sidebar-academy-dot" />
                         @if(Auth::user()->hasPermission('performance', 'view_company') || Auth::user()->hasPermission('performance', 'view_team') || Auth::user()->hasPermission('performance', 'view_own'))
                         <x-nav-link-premium href="{{ route('payments.index') }}" :active="request()->routeIs('payments.*')" icon="credit-card" label="Revenue" />
                         @endif
@@ -255,14 +373,19 @@
         <!-- ═══════════════════════════════════════════
              MAIN AREA (Topbar + Content)
         ═══════════════════════════════════════════ -->
-        <div class="flex-1 flex flex-col overflow-hidden transition-all duration-300 ml-[220px]">
+        <div 
+            :class="sidebarOpen ? 'lg:ml-[220px]' : 'ml-0'"
+            class="flex-1 flex flex-col transition-all duration-300 overflow-hidden">
 
             <!-- ───────────── STICKY TOPBAR ───────────── -->
             <header class="sticky top-0 z-30 bg-white border-b border-[#E5E7EB] flex items-center h-[56px] px-6 gap-4 flex-shrink-0">
 
-                <!-- Sidebar Toggle (Mobile only or hidden since we use fixed) -->
-                <button @click="sidebarOpen = !sidebarOpen" class="hidden p-1.5 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                <!-- Sidebar Toggle -->
+                <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path x-show="!sidebarOpen" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path x-show="sidebarOpen" stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
                 </button>
 
                 <!-- Breadcrumb -->
@@ -425,7 +548,7 @@
     <div id="notification-container" class="fixed top-4 right-4 z-[90] space-y-3 w-96"></div>
 
     <!-- Admin Broadcast Ticker -->
-    <div id="admin-ticker" class="fixed top-14 left-0 right-0 z-[45] bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white overflow-hidden transition-all duration-500" style="display: none; height: 0;" :style="sidebarOpen ? 'margin-left: 15rem' : 'margin-left: 4rem'">
+    <div id="admin-ticker" class="fixed top-14 left-0 right-0 z-[45] bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white overflow-hidden transition-all duration-500" style="display: none; height: 0;" :style="sidebarOpen && window.innerWidth >= 1024 ? 'margin-left: 220px' : 'margin-left: 0'">
         <div class="flex items-center h-8 px-4">
             <div class="flex-shrink-0 flex items-center gap-2 pr-4 border-r border-white/20">
                 <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
@@ -467,11 +590,20 @@
                 .then(r => r.json())
                 .then(data => {
                     updateBadge('nav-mail-badge', data.mail);
+                    updateBadge('sidebar-leads-count', data.leads_count);
+                    
+                    const academyDot = document.getElementById('sidebar-academy-dot');
+                    if (academyDot) {
+                        if (data.academy_alert) academyDot.classList.remove('hidden');
+                        else academyDot.classList.add('hidden');
+                    }
 
                     const serverAdvisoryId = parseInt(data.latest_advisory_id) || 0;
                     const localAdvisoryId = parseInt(lastAdvisoryId) || 0;
-                    if (localAdvisoryId > 0 && serverAdvisoryId > localAdvisoryId) {
-                        const tipText = data.latest_advisory_text || 'New advisory call broadcasted';
+                    let advisoryShown = false;
+                    
+                    if (localAdvisoryId > 0 && serverAdvisoryId > localAdvisoryId && data.latest_advisory_text) {
+                        const tipText = data.latest_advisory_text;
                         showToast({
                             title: 'New Market Call',
                             body: tipText,
@@ -479,13 +611,19 @@
                             action_label: 'VIEW CALLS',
                             copyText: tipText
                         });
+                        advisoryShown = true;
                         try { new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {}); } catch(e) {}
                     }
                     if (serverAdvisoryId > localAdvisoryId) { lastAdvisoryId = serverAdvisoryId; localStorage.setItem('lastAdvisoryId', serverAdvisoryId); }
 
                     if (data.new_announcement) {
-                        showToast({ title: data.new_announcement.title, body: data.new_announcement.body, type: data.new_announcement.type, action_label: 'OK' });
-                        if (data.new_announcement.type === 'success') { try { new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play().catch(() => {}); } catch(e) {} }
+                        // Skip showing announcement toast if it's the same Market Call we just showed via advisory toast
+                        const isDuplicateMarketCall = advisoryShown && (data.new_announcement.title.includes('Market Call') || data.new_announcement.title.includes('📈'));
+                        
+                        if (!isDuplicateMarketCall) {
+                            showToast({ title: data.new_announcement.title, body: data.new_announcement.body, type: data.new_announcement.type, action_label: 'OK' });
+                            if (data.new_announcement.type === 'success') { try { new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3').play().catch(() => {}); } catch(e) {} }
+                        }
                         lastAnnouncementId = data.new_announcement.id; localStorage.setItem('lastAnnouncementId', lastAnnouncementId);
                     } else if (data.latest_announcement_id < lastAnnouncementId) { lastAnnouncementId = data.latest_announcement_id; localStorage.setItem('lastAnnouncementId', lastAnnouncementId); }
                     if (data.latest_announcement_id > lastAnnouncementId) { lastAnnouncementId = data.latest_announcement_id; localStorage.setItem('lastAnnouncementId', lastAnnouncementId); }
@@ -532,7 +670,7 @@
             else { el.classList.add('hidden'); }
         }
 
-        setInterval(checkNotifications, 10000);
+        setInterval(checkNotifications, 5000);
         checkNotifications();
 
         function escapeHtml(str) {

@@ -26,6 +26,17 @@ class AdminControlController extends Controller
         'ticker_message',
         'ticker_urgency',
         'company_name',
+        'calling_provider',
+        'calling_api_key',
+        'calling_api_secret',
+        'sms_provider',
+        'sms_api_key',
+        'sms_api_secret',
+        'whatsapp_provider',
+        'whatsapp_api_key',
+        'whatsapp_api_phone_id',
+        'ai_provider',
+        'ai_api_key',
     ];
 
     public function index()

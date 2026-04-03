@@ -9,9 +9,17 @@
         <!-- Tab Bar -->
         <div class="flex border-b border-[#E5E7EB] mb-8 gap-8 overflow-x-auto pb-px">
             <a href="#" class="pb-4 text-sm font-bold text-[#4F46E5] border-b-2 border-[#4F46E5] whitespace-nowrap">Permissions Matrix</a>
-            <a href="#" class="pb-4 text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] whitespace-nowrap">Role Definitions</a>
-            <a href="#" class="pb-4 text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] whitespace-nowrap">Data Boundaries</a>
-            <a href="#" class="pb-4 text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] whitespace-nowrap">Audit Log</a>
+            		<a href="#" class="pb-4 text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] whitespace-nowrap">
+			Role Definitions
+		</a>
+
+		<a href="#" class="pb-4 text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] whitespace-nowrap">
+			Data Boundaries
+		</a>
+
+		<a href="#" class="pb-4 text-sm font-medium text-[#9CA3AF] hover:text-[#6B7280] whitespace-nowrap">
+			Audit Log
+		</a>
         </div>
 
         @if(session('success'))

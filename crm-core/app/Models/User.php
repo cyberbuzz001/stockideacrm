@@ -25,6 +25,7 @@ class User extends Authenticatable
         'parent_id', // Reporting Manager
         'commission_rate',
         'lead_weight',
+        'is_active',
         'last_login_at',
         'last_login_ip',
     ];
@@ -68,7 +69,7 @@ class User extends Authenticatable
 
     public function payments()
     {
-        return $this->hasManyThrough(Payment::class, Lead::class, 'assigned_to', 'lead_id');
+        return $this->hasMany(Payment::class, 'user_id');
     }
 
     public function activities()
@@ -108,6 +109,10 @@ class User extends Authenticatable
      */
     public function hasPermission(string $module, string $action): bool
     {
+        if ($this->role === 'Admin') {
+            return true;
+        }
+
         // Cache permissions to avoid repeated JSON decoding
         return \Illuminate\Support\Facades\Cache::remember("user_perm_{$this->role}_{$module}_{$action}", 60, function () use ($module, $action) {
             $matrix = json_decode(\App\Models\SystemSetting::get('role_access_matrix', '{}'), true);

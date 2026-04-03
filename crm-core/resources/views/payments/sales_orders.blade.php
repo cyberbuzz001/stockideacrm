@@ -37,7 +37,7 @@
                             <th class="px-6 py-4 text-center">Invoice</th>
                         </tr>
                     </thead>
-                    <div class="divide-y divide-slate-50">
+                    <tbody class="divide-y divide-slate-50">
                         @forelse($payments as $payment)
                             <tr class="hover:bg-slate-50/80 transition-colors group cursor-default border-t border-slate-50">
                                 <td class="px-6 py-4">
@@ -52,7 +52,7 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                                        {{ $payment->lead->assignee->name ?? 'N/A' }}
+                                        {{ $payment->user->name ?? 'N/A' }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4">
@@ -82,7 +82,8 @@
                                 </td>
                             </tr>
                         @endforelse
-                    </div>
+                    </tbody>
+                    <script></script> <!-- Empty script to avoid potential tag parsing issues if needed, but not likely -->
                 </table>
             </div>
 

@@ -57,11 +57,11 @@
         </div>
 
         <!-- Results List -->
-        <ul x-show="!isLoading && results.length > 0" class="max-h-80 scroll-py-2 overflow-y-auto p-2" id="options" role="listbox">
+        <ul x-show="!isLoading && results.length > 0" class="max-h-96 scroll-py-2 overflow-y-auto p-2" id="options" role="listbox">
             <template x-for="(item, index) in results" :key="index">
-                <li class="cursor-pointer select-none rounded-xl px-3 py-2 hover:bg-slate-100"
-                    :class="{ 'bg-slate-100 ring-1 ring-slate-200': selectedIndex === index }"
-                    @click="safeNavigate(item.url)"
+                <li class="cursor-pointer select-none rounded-xl px-3 py-2.5 hover:bg-slate-50 transition-colors"
+                    :class="{ 'bg-indigo-50 ring-1 ring-indigo-200': selectedIndex === index }"
+                    @click.stop="safeNavigate(item.url)"
                     @mouseenter="selectedIndex = index"
                     role="option"
                     tabindex="-1">
@@ -72,7 +72,7 @@
                              :class="{
                                 'bg-indigo-50 text-indigo-600': item.type === 'page' || item.type === 'action',
                                 'bg-emerald-50 text-emerald-600': item.type === 'client',
-                                'bg-slate-50 text-slate-600': item.type === 'lead'
+                                'bg-violet-50 text-violet-600': item.type === 'lead'
                              }">
                             <template x-if="item.icon === 'home'">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -106,13 +106,38 @@
                             </template>
                         </div>
                         
-                        <div class="flex-auto">
-                            <p class="text-sm font-bold text-slate-900" x-text="item.title"></p>
-                            <p class="text-[11px] font-semibold text-slate-500" x-text="item.subtitle"></p>
+                        <!-- Result Content -->
+                        <div class="flex-auto min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <p class="text-sm font-bold text-slate-900 truncate" x-text="item.title"></p>
+                                <!-- Status badge only for leads/clients -->
+                                <template x-if="item.type === 'lead' || item.type === 'client'">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide"
+                                          :class="{
+                                            'bg-emerald-100 text-emerald-700': item.type === 'client',
+                                            'bg-indigo-100 text-indigo-700': item.status === 'Interested' || item.status === 'Follow Up' || item.status === 'Call Back',
+                                            'bg-amber-100 text-amber-700': item.status === 'Free Trial' || item.status === 'Make Payment' || item.status === 'Expected Payment',
+                                            'bg-slate-100 text-slate-600': !['Interested','Follow Up','Call Back','Free Trial','Make Payment','Expected Payment','Paid Client'].includes(item.status)
+                                          }"
+                                          x-text="item.status || 'Lead'">
+                                    </span>
+                                </template>
+                            </div>
+                            <!-- Mobile + Agent for leads -->
+                            <template x-if="item.type === 'lead' || item.type === 'client'">
+                                <div class="flex items-center gap-3 mt-0.5">
+                                    <span class="text-[11px] font-mono text-slate-500" x-text="'📱 ' + (item.mobile || '')" ></span>
+                                    <span class="text-[11px] font-semibold text-violet-600" x-text="'👤 ' + (item.agent || 'Unassigned')"></span>
+                                </div>
+                            </template>
+                            <!-- Subtitle for pages/actions -->
+                            <template x-if="item.type === 'page' || item.type === 'action'">
+                                <p class="text-[11px] font-semibold text-slate-500" x-text="item.subtitle"></p>
+                            </template>
                         </div>
 
                         <!-- Arrow Indicator -->
-                        <div class="flex-none text-slate-400" x-show="selectedIndex === index">
+                        <div class="flex-none text-indigo-400" x-show="selectedIndex === index">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
                             </svg>
@@ -230,8 +255,8 @@ document.addEventListener('alpine:init', () => {
         },
 
         safeNavigate(url) {
-            if (typeof url !== 'string') return;
-            if (!url.startsWith('/')) return;
+            if (typeof url !== 'string' || !url) return;
+            this.isOpen = false;
             window.location.href = url;
         }
     }));
