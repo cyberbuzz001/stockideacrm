@@ -28,19 +28,19 @@
 @endphp
 
 <a href="{{ $href }}" 
-   class="nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 {{ $active ? 'nav-item-active' : 'text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]' }}">
-    <svg class="nav-icon w-4 h-4 flex-shrink-0 {{ $active ? 'text-[#4F46E5]' : 'text-[#9CA3AF]' }}" 
+   class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all duration-200 {{ $active ? 'nav-item-active' : 'text-slate-500 hover:bg-slate-100/50 hover:text-slate-900' }}">
+    <svg class="nav-icon w-4 h-4 flex-shrink-0 {{ $active ? 'text-indigo-600' : 'text-slate-400' }}" 
          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         {!! $icons[$icon] ?? '' !!}
     </svg>
     <span class="font-medium truncate">{{ $label }}</span>
     
-    <span @if($badgeId) id="{{ $badgeId }}" @endif class="ml-auto bg-[#EF4444] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white {{ ($badge === null || $badge <= 0) ? 'hidden' : '' }}">
+    <span @if($badgeId) id="{{ $badgeId }}" @endif class="ml-auto bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-white shadow-sm {{ ($badge === null || $badge <= 0) ? 'hidden' : '' }}">
         {{ $badge ?? '' }}
     </span>
     
     <span @if($pulseId) id="{{ $pulseId }}" @endif class="ml-auto flex h-2 w-2 {{ !$pulseAlert ? 'hidden' : '' }}">
-        <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#EF4444] opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-[#EF4444]"></span>
+        <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-rose-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
     </span>
 </a>

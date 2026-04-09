@@ -72,6 +72,9 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- WhatsApp Auto-Proof Compliance Hub -->
+            <x-leads.compliance-hub :lead="$lead" />
 
             <!-- Consent Ledger -->
             <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 mb-6">
@@ -138,6 +141,48 @@
 
                 <!-- Profile Card (Section 4) -->
                 <div class="md:col-span-2 space-y-6">
+                    <!-- Quick Engagement Hub (Premium Upgrade) -->
+                    <div class="glass-card p-8 rounded-[2rem] bg-indigo-600 text-white relative overflow-hidden group mb-6">
+                        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+                        <div class="relative z-10">
+                            <div class="flex items-center justify-between mb-8">
+                                <div>
+                                    <h3 class="text-xl font-bold tracking-tight">Quick Engagement</h3>
+                                    <p class="text-[10px] text-indigo-200 font-extrabold uppercase tracking-widest mt-1 italic">Single-Click Interaction Audit</p>
+                                </div>
+                                <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
+                                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- WhatsApp Log & Link -->
+                                <button onclick="handleCommEngagement('whatsapp', '{{ $lead->id }}', 'https://wa.me/91{{ preg_replace('/[^0-9]/', '', $lead->mobile) }}?text={{ urlencode('Hi ' . $lead->name . ', reaching out from ' . config('app.name') . ' regarding your inquiry.') }}')"
+                                        class="flex items-center gap-3 bg-white/10 hover:bg-white text-indigo-900 group/btn transition-all p-4 rounded-3xl border border-white/10 hover:border-transparent group-hover:shadow-2xl">
+                                    <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover/btn:scale-110 transition-transform">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.549 4.131 1.594 5.928L0 24l6.233-1.576c1.728 1 3.682 1.536 5.765 1.536 6.638 0 12.022-5.382 12.022-12.031zM12.031 22.022c-1.802 0-3.564-.485-5.111-1.402l-.366-.217-3.793.961.981-3.69-.239-.379c-.997-1.591-1.523-3.425-1.523-5.282 0-5.558 4.524-10.082 10.082-10.082s10.081 4.524 10.081 10.082c-.001 5.558-4.525 10.081-10.082 10.081zm5.534-7.555c-.303-.152-1.795-.886-2.073-.988-.278-.103-.48-.152-.683.153-.203.303-.783.987-.959 1.189-.176.202-.352.227-.655.076-1.532-.765-2.791-1.638-3.901-3.535-.114-.194-.012-.303.141-.453.138-.135.303-.353.454-.531.152-.178.202-.303.303-.505.101-.202.051-.379-.025-.53-.076-.152-.682-1.644-.935-2.253-.247-.591-.497-.509-.682-.519-.176-.008-.379-.011-.581-.011s-.53.076-.808.379c-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.086 2.932 1.238 3.134.152.202 2.138 3.264 5.176 4.576.721.312 1.284.498 1.725.638.723.23 1.382.197 1.898.119.579-.088 1.795-.733 2.047-1.44.253-.708.253-1.315.177-1.442-.075-.126-.277-.201-.58-.352z"/></svg>
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-[9px] font-black uppercase text-indigo-300 group-hover/btn:text-indigo-400">WhatsApp</p>
+                                        <p class="text-xs font-black group-hover/btn:text-indigo-950 text-white">Log & Link</p>
+                                    </div>
+                                </button>
+
+                                <!-- Telegram Log & Link -->
+                                <button onclick="handleCommEngagement('telegram', '{{ $lead->id }}', 'https://t.me/+91{{ preg_replace('/[^0-9]/', '', $lead->mobile) }}')"
+                                        class="flex items-center gap-3 bg-white/10 hover:bg-white text-indigo-900 group/btn transition-all p-4 rounded-3xl border border-white/10 hover:border-transparent group-hover:shadow-2xl">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover/btn:scale-110 transition-transform">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                    </div>
+                                    <div class="text-left">
+                                        <p class="text-[9px] font-black uppercase text-indigo-300 group-hover/btn:text-indigo-400">Telegram</p>
+                                        <p class="text-xs font-black group-hover/btn:text-indigo-950 text-white">Log & Open</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <div>
@@ -167,14 +212,6 @@
                                             <a href="tel:{{ $lead?->mobile ?? '' }}"
                                                 onclick="logCall('{{ $lead?->id ?? 0 }}')"
                                                 class="font-bold text-indigo-600 hover:underline inline-flex items-center gap-1">{{ $lead?->mobile ?? 'N/A' }}</a>
-                                            @if($lead && $lead->mobile)
-                                                @php
-                                                    $waMessage = urlencode("Hi {$lead->name}, this is " . auth()->user()->name . " from {$company_name}. I'm reaching out regarding your recent inquiry. How can I help you today?");
-                                                @endphp
-                                                <a href="https://wa.me/91{{ preg_replace('/[^0-9]/', '', $lead->mobile) }}?text={{ $waMessage }}" target="_blank" class="w-6 h-6 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors shadow-sm" title="WhatsApp 1-Click">
-                                                    <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.115.549 4.131 1.594 5.928L0 24l6.233-1.576c1.728 1 3.682 1.536 5.765 1.536 6.638 0 12.022-5.382 12.022-12.031zM12.031 22.022c-1.802 0-3.564-.485-5.111-1.402l-.366-.217-3.793.961.981-3.69-.239-.379c-.997-1.591-1.523-3.425-1.523-5.282 0-5.558 4.524-10.082 10.082-10.082s10.081 4.524 10.081 10.082c-.001 5.558-4.525 10.081-10.082 10.081zm5.534-7.555c-.303-.152-1.795-.886-2.073-.988-.278-.103-.48-.152-.683.153-.203.303-.783.987-.959 1.189-.176.202-.352.227-.655.076-1.532-.765-2.791-1.638-3.901-3.535-.114-.194-.012-.303.141-.453.138-.135.303-.353.454-.531.152-.178.202-.303.303-.505.101-.202.051-.379-.025-.53-.076-.152-.682-1.644-.935-2.253-.247-.591-.497-.509-.682-.519-.176-.008-.379-.011-.581-.011s-.53.076-.808.379c-.278.303-1.06 1.036-1.06 2.527 0 1.491 1.086 2.932 1.238 3.134.152.202 2.138 3.264 5.176 4.576.721.312 1.284.498 1.725.638.723.23 1.382.197 1.898.119.579-.088 1.795-.733 2.047-1.44.253-.708.253-1.315.177-1.442-.075-.126-.277-.201-.58-.352z"/></svg>
-                                                </a>
-                                            @endif
                                         </div>
                                     </div>
                                     <div>
@@ -851,14 +888,23 @@
         }
 
         function startManualCall() {
-            document.getElementById('callInitial').classList.add('hidden');
-            document.getElementById('callActive').classList.remove('hidden');
-
-            fetch("{{ route('leads.start-call', $lead) }}", {
+            const leadId = '{{ $lead?->id ?? 0 }}';
+            fetch(`/leads/${leadId}/start-call`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('callInitial').classList.add('hidden');
+                    document.getElementById('callActive').classList.remove('hidden');
+                    
+                    // Simple simulated ringing
+                    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+                    audio.play().catch(e => console.log('Audio disabled'));
                 }
             });
         }
@@ -1005,5 +1051,14 @@
                 }
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-trigger AI Analysis Sidebar
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('open-ai-sidebar', { 
+                    detail: { leadId: '{{ $lead->id }}' } 
+                }));
+            }, 1000);
+        });
     </script>
 </x-app-layout>

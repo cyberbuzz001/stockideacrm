@@ -19,6 +19,7 @@ class AiAnalysisController extends Controller
 
     public function analyze(Request $request)
     {
+        // ... (existing mock logic preserved for standard audio analysis)
         $user = auth()->user();
         if (!$user || !$user->hasPermission('ai_analysis', 'execute')) {
             abort(403);
@@ -39,5 +40,43 @@ class AiAnalysisController extends Controller
         ];
 
         return redirect()->route('ai.index')->with('analysis_result_obj', $mockResult);
+    }
+
+    /**
+     * AI Sidebar API: Summarize Lead interactions
+     */
+    public function summarize(Request $request, \App\Models\Lead $lead)
+    {
+        // Simple authorization check
+        if (auth()->user()->role === 'BA' && $lead->assigned_to !== auth()->id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $activities = $lead->activities()
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        if ($activities->isEmpty()) {
+            return response()->json(['summary' => "New Lead: No previous interactions recorded. Initial outreach recommended."]);
+        }
+
+        $gemini = new \App\Services\GeminiService();
+        $summary = $gemini->generateLeadSummary($lead, $activities);
+
+        return response()->json(['summary' => $summary]);
+    }
+
+    /**
+     * AI Sidebar API: Get advice on a specific objection
+     */
+    public function getAdvice(Request $request, \App\Models\Lead $lead)
+    {
+        $request->validate(['objection' => 'required|string']);
+        
+        $gemini = new \App\Services\GeminiService();
+        $advice = $gemini->getObjectionAdvice($lead, $request->input('objection'));
+
+        return response()->json(['advice' => $advice]);
     }
 }

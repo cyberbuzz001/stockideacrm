@@ -158,22 +158,23 @@
 
         <!-- Footer / Shortcuts Guide -->
         <div class="flex flex-wrap items-center justify-between border-t border-slate-100 bg-slate-50 px-4 py-3 sm:px-6">
-            <div class="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <div class="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <div class="flex items-center gap-3">
+                    <span class="text-indigo-600">?</span> Action
+                    <span class="text-indigo-600">></span> Jump
+                    <span class="text-indigo-600">/</span> Docs
+                </div>
+                <div class="h-4 w-px bg-slate-200 mx-2"></div>
                 <div class="flex items-center gap-1.5">
-                    <kbd class="flex h-5 w-5 items-center justify-center rounded bg-white font-sans text-xs shadow ring-1 ring-slate-200">↑</kbd>
-                    <kbd class="flex h-5 w-5 items-center justify-center rounded bg-white font-sans text-xs shadow ring-1 ring-slate-200">↓</kbd>
-                    <span>to navigate</span>
+                    <kbd class="flex h-5 w-5 items-center justify-center rounded bg-white font-sans text-xs shadow ring-1 ring-slate-200">↑↓</kbd>
+                    <span>navigate</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <kbd class="flex h-5 px-1.5 items-center justify-center rounded bg-white font-sans text-[10px] shadow ring-1 ring-slate-200">↵</kbd>
-                    <span>to select</span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                    <kbd class="flex h-5 px-1.5 items-center justify-center rounded bg-white font-sans text-[10px] shadow ring-1 ring-slate-200">ESC</kbd>
-                    <span>to close</span>
+                    <span>select</span>
                 </div>
             </div>
-            <a href="{{ route('leads.index') }}" class="text-[10px] font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800">Advanced Search &rarr;</a>
+            <a href="{{ route('leads.index') }}" class="text-[9px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800">Advanced Hub &rarr;</a>
         </div>
     </div>
 </div>

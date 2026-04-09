@@ -20,7 +20,10 @@ use App\Http\Controllers\KycRpmController;
 use App\Http\Controllers\MessageTemplateController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('welcome', [
+        'company_name' => \App\Models\SystemSetting::get('company_name', 'StockIdea'),
+        'company_logo' => \App\Models\SystemSetting::get('company_logo')
+    ]);
 });
 
 // Temporary Route to install Database on Shared Hosting (Hostinger)
@@ -87,6 +90,7 @@ Route::middleware('auth')->group(function () {
     Route::post('leads/{lead}/send-whatsapp', [LeadController::class, 'sendWhatsApp'])->name('leads.send-whatsapp');
     Route::post('leads/{lead}/update-rich-details', [LeadController::class, 'updateRichDetails'])->name('leads.update-rich-details');
     Route::post('leads/{lead}/quick-log', [LeadController::class, 'quickLog'])->name('leads.quick-log');
+    Route::post('leads/{lead}/log-comm', [LeadController::class, 'logComm'])->name('leads.log-comm');
     Route::post('leads/{lead}/escalate', [LeadController::class, 'escalate'])->name('leads.escalate');
     Route::post('leads/{lead}/compliance/step', [LeadController::class, 'completeComplianceStep'])->name('leads.compliance.step');
     Route::post('leads/{lead}/compliance/expiry', [LeadController::class, 'updateComplianceExpiry'])->name('leads.compliance.expiry');
@@ -140,6 +144,12 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:Admin,Manager'])->group(function () {
         Route::get('/ai/analysis', [AiAnalysisController::class, 'index'])->name('ai.index');
         Route::post('/ai/analyze', [AiAnalysisController::class, 'analyze'])->name('ai.analyze');
+        
+        // AI Smart Response Sidebar Endpoints
+        Route::get('/ai/summarize/{lead}', [AiAnalysisController::class, 'summarize'])->name('ai.summarize');
+        Route::post('/ai/get-advice/{lead}', [AiAnalysisController::class, 'getAdvice'])->name('ai.get-advice');
+        Route::post('/analytics/audit', [AnalyticsController::class, 'runAudit'])->name('analytics.audit');
+        Route::post('/leads/{lead}/whatsapp/send', [LeadController::class, 'dispatchComplianceWhatsApp'])->name('leads.whatsapp.send');
 
         // Activity Logs
         Route::get('/activities', [App\Http\Controllers\SystemActivityController::class, 'index'])->name('activities.index');

@@ -12,8 +12,17 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                'glass-white': 'rgba(255, 255, 255, 0.7)',
+                'glass-slate': 'rgba(15, 23, 42, 0.8)',
+                'pro-blue': '#2563EB',
+                'deal-green': '#059669',
+            },
+            backdropBlur: {
+                xs: '2px',
+            }
         },
     },
 

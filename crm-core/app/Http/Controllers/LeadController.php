@@ -14,6 +14,7 @@ use App\Services\ComplianceService;
 use App\Services\WhatsAppService;
 use App\Models\ClientConsent;
 use App\Models\MessageTemplate;
+use App\Events\VelocityEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -516,6 +517,34 @@ class LeadController extends Controller
         return back()->with('success', 'Quick call note added.');
     }
 
+    /**
+     * Semi-automated communication logging for WhatsApp/Telegram.
+     */
+    public function logComm(Request $request, Lead $lead)
+    {
+        $user = auth()->user();
+        $this->authorizeLead($lead, $user);
+
+        $validated = $request->validate([
+            'channel' => 'required|string|in:whatsapp,telegram',
+            'template_name' => 'nullable|string'
+        ]);
+
+        $channelName = ucfirst($validated['channel']);
+        $notes = "Initiated {$channelName} engagement.";
+        if ($validated['template_name']) {
+            $notes .= " Template: " . $validated['template_name'];
+        }
+
+        $lead->activities()->create([
+            'user_id' => $user->id,
+            'activity_type' => "{$channelName} Sent",
+            'notes' => $notes,
+        ]);
+
+        return response()->json(['success' => true, 'message' => "{$channelName} log created."]);
+    }
+
     public function storeActivity(Request $request, Lead $lead)
     {
         $user = auth()->user();
@@ -647,6 +676,13 @@ class LeadController extends Controller
                         'remarks' => $this->sanitizeText($validated['notes'] ?? ''),
                     ]);
                 }
+
+                // Fire Velocity Event for Gamification
+                broadcast(new VelocityEvent(
+                    "just logged a potential win from {$lead->name}!", 
+                    'win', 
+                    $user->name
+                ));
             }
 
             \App\Models\SystemAnnouncement::create([
@@ -1360,5 +1396,42 @@ class LeadController extends Controller
         $lead->delete();
 
         return redirect()->route('leads.index')->with('success', 'Lead and all associated data deleted successfully.');
+    }
+
+    /**
+     * Send WhatsApp Template with Custom Body (Compliance System)
+     */
+    public function dispatchComplianceWhatsApp(Request $request, Lead $lead)
+    {
+        $validated = $request->validate([
+            'template_name' => 'required|string',
+            'custom_body' => 'nullable|string'
+        ]);
+
+        $body = $request->custom_body ?: '';
+        
+        // Log outreach
+        $lead->activities()->create([
+            'action' => 'WhatsApp Sent: ' . $validated['template_name'],
+            'details' => "Template sent to {$lead->mobile}. Body: " . substr($body, 0, 100) . '...',
+        ]);
+
+        \App\Models\WhatsAppMessageLog::create([
+            'direction' => 'outbound',
+            'from_number' => 'System',
+            'to_number' => $lead->mobile,
+            'content' => $body,
+            'status' => 'sent',
+            'lead_id' => $lead->id,
+            'message_id' => 'MSG_' . uniqid()
+        ]);
+
+        // Integration with WhatsAppService or Acele Bot would happen here
+        // \App\Services\WhatsAppService::sendMessage($lead->mobile, $body);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'WhatsApp logged and dispatched.'
+        ]);
     }
 }

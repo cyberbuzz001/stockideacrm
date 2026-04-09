@@ -263,4 +263,39 @@ class Lead extends Model
     {
         return $this->hasMany(WhatsAppMessageLog::class, 'lead_id');
     }
+
+    /**
+     * Get Compliance Progress Data for UI
+     */
+    public function getComplianceProgress()
+    {
+        $steps = [
+            'step_1_payment'   => 'Payment Confirmation',
+            'step_2_activation' => 'Service Activation (YES)',
+            'step_3_terms'      => 'Terms Acceptance (AGREE)',
+            'step_4_delivery'   => 'Trade Delivery Start',
+            'step_5_usage'      => 'Usage Proof (Screenshot)',
+            'step_6_followup'   => 'Regular Follow-up',
+            'step_7_continuity' => 'Continuity Proof',
+            'step_8_completion' => 'Service Completion',
+        ];
+
+        $completedSteps = $this->complianceSteps->where('status', 'completed')->pluck('step_key')->toArray();
+        $total = count($steps);
+        $done = count($completedSteps);
+        
+        $percentage = $total > 0 ? round(($done / $total) * 100) : 0;
+
+        return [
+            'percentage' => $percentage,
+            'is_safe' => $percentage >= 35, // After YES and AGREE
+            'steps' => collect($steps)->map(function($label, $key) use ($completedSteps) {
+                return [
+                    'key' => $key,
+                    'label' => $label,
+                    'is_completed' => in_array($key, $completedSteps)
+                ];
+            })->values()
+        ];
+    }
 }

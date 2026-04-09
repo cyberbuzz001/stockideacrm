@@ -1,6 +1,6 @@
 {
   "short_name": "StockIdea",
-  "name": "StockIdea CRM AI",
+  "name": "StockIdea Pro CRM",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -8,20 +8,20 @@
       "type": "image/x-icon"
     },
     {
-       "src": "/favicon.ico",
+       "src": "https://img.icons8.com/gelato/512/rocket.png",
        "type": "image/png",
        "sizes": "192x192"
     },
     {
-       "src": "/favicon.ico",
+       "src": "https://img.icons8.com/gelato/512/rocket.png",
        "type": "image/png",
        "sizes": "512x512"
     }
   ],
   "start_url": "/dashboard",
-  "background_color": "#0f172a",
+  "background_color": "#F8FAFC",
   "display": "standalone",
   "scope": "/",
-  "theme_color": "#4f46e5",
-  "description": "StockIdea CRM with Offline Access"
+  "theme_color": "#4F46E5",
+  "description": "Premium Soft UI CRM for High-Velocity Agents"
 }

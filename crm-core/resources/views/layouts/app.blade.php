@@ -21,12 +21,13 @@
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
+    <script src="/js/crm-haptics.js"></script>
     <meta name="theme-color" content="#4f46e5">
     <link rel="apple-touch-icon" href="/favicon.ico">
 
-    <!-- Fonts: DM Sans & DM Mono -->
+    <!-- Fonts: Inter & DM Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <!-- Tailwind + Alpine -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -41,7 +42,7 @@
                         pagebg: '#F8F9FB',
                     },
                     fontFamily: {
-                        sans: ['DM Sans', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
                         mono: ['DM Mono', 'monospace'],
                     }
                 }
@@ -61,6 +62,7 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <link href="{{ asset('css/dashboard-premium.css') }}" rel="stylesheet">
     <script src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
@@ -151,7 +153,7 @@
     </script>
 
     <style>
-        body { font-family: 'DM Sans', sans-serif; background-color: #F8F9FB; }
+        body { font-family: 'Inter', sans-serif; background-color: #F8F9FB; }
         .font-mono { font-family: 'DM Mono', monospace; }
 
         /* Sidebar scrollbar */
@@ -159,15 +161,12 @@
         .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
         .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(79, 70, 229, 0.1); border-radius: 4px; }
 
-        /* Nav item active state (Fixed 220px Sidebar) */
+        /* Nav item active state */
         .nav-item-active {
-            background-color: #EEF2FF; /* indigo-50 */
-            color: #4338CA !important; /* indigo-700 */
-            font-weight: 500;
-            border-left: 2px solid #4F46E5;
-            border-radius: 0 7px 7px 0 !important;
+            @apply bg-indigo-50/50 text-indigo-700 font-semibold;
+            box-shadow: inset 2px 0 0 0 theme('colors.indigo.600');
         }
-        .nav-item-active .nav-icon { color: #4F46E5; }
+        .nav-item-active .nav-icon { @apply text-indigo-600; }
 
         /* Pulse dot animation */
         @keyframes pulse-dot {
@@ -220,7 +219,11 @@
 
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased transition-colors duration-300" x-data="{ sidebarOpen: window.innerWidth >= 1024 }">
 
-    <div class="flex h-screen overflow-hidden">
+    <div class="min-h-screen bg-[#F8FAFC]">
+        <x-premium-toast />
+        
+        <!-- Sidebar Navigation -->
+        <div class="flex h-screen overflow-hidden">
 
         <!-- ═══════════════════════════════════════════
              SIDEBAR
@@ -246,7 +249,7 @@
             x-transition:leave="transition ease-in duration-300"
             x-transition:leave-start="translate-x-0"
             x-transition:leave-end="-translate-x-full"
-            class="sidebar-nav fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-[#E5E7EB] overflow-x-hidden overflow-y-auto w-[220px]">
+            class="sidebar-nav fixed inset-y-0 left-0 z-50 flex flex-col glass-sidebar overflow-x-hidden overflow-y-auto w-[220px]">
             
             <!-- Logo -->
             <div class="flex items-center gap-2.5 px-5 py-6 flex-shrink-0 max-w-full overflow-hidden">
@@ -378,7 +381,7 @@
             class="flex-1 flex flex-col transition-all duration-300 overflow-hidden">
 
             <!-- ───────────── STICKY TOPBAR ───────────── -->
-            <header class="sticky top-0 z-30 bg-white border-b border-[#E5E7EB] flex items-center h-[56px] px-6 gap-4 flex-shrink-0">
+            <header class="sticky top-0 z-30 glass-card flex items-center h-[56px] px-6 gap-4 flex-shrink-0 !rounded-none !border-t-0 !border-l-0 !border-r-0">
 
                 <!-- Sidebar Toggle -->
                 <button @click="sidebarOpen = !sidebarOpen" class="p-1.5 rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] transition-colors">
@@ -537,6 +540,9 @@
             @endisset
 
             <main class="flex-1 overflow-y-auto bg-[#F8F9FB] p-8">
+                <!-- Velocity Engine: Performance Ticker -->
+                <x-dashboard.velocity-ticker />
+                
                 {{ $slot }}
             </main>
         </div>
@@ -577,6 +583,12 @@
             </button>
         </div>
     </div>
+
+    <!-- Mobile Interactive Layer -->
+    <x-layouts.mobile-quick-actions />
+
+    <!-- AI Intelligence Layer -->
+    <x-layouts.ai-sidebar />
 
     <!-- ───────────── SCRIPTS ───────────── -->
     <script>
@@ -983,6 +995,29 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        function handleCommEngagement(channel, leadId, url) {
+            fetch(`/leads/${leadId}/log-comm`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ channel: channel })
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.dispatchEvent(new CustomEvent('toast-notify', { 
+                    detail: { message: data.message, type: 'success' } 
+                }));
+            })
+            .catch(error => console.error('Error logging comm:', error));
+
+            window.open(url, '_blank');
+        }
+    </script>
+
+    @stack('scripts')
 </body>
 
 </html>

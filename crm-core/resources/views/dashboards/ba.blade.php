@@ -13,139 +13,72 @@
         </div>
     </div>
 
-    <!-- KPI Strip -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <x-stat-card 
-            title="Total Leads" 
-            :value="number_format($stats['assigned_total'] ?? 0)" 
-            icon="users" 
-            color="indigo" 
-            :trend="12" 
-            :trendUp="true"
-        />
-        <x-stat-card 
-            title="Today's Calls" 
-            :value="number_format($stats['calls_today'] ?? 0)" 
-            icon="phone" 
-            color="blue" 
-            :trend="round((($stats['calls_today'] ?? 0) / ($stats['calls_yesterday'] ?: 1) - 1) * 100)"
-            :trendUp="($stats['calls_today'] ?? 0) >= ($stats['calls_yesterday'] ?? 0)"
-        />
-        <x-stat-card 
-            title="Conversions" 
-            :value="number_format($stats['paid_approved'] ?? 0)" 
-            icon="check-circle" 
-            color="emerald" 
-        />
-        <x-stat-card 
-            title="Revenue" 
-            :value="'₹' . number_format($stats['revenue'] ?? 0, 0)" 
-            icon="currency-rupee" 
-            color="amber" 
-        />
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Priority Queue Column -->
-        <div class="lg:col-span-2 space-y-8">
-            <x-dashboard.priority-queue :leads="$priority_leads ?? collect()" title="My Priority Actions" />
-            
-            <!-- Target Progress & Market Heat -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Target Progress -->
-                <div class="glass-card p-8 rounded-3xl relative overflow-hidden group">
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-6">
-                            <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Revenue Target</h3>
-                            <span class="text-xs font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full italic">
-                                {{ $target_progress['percentage'] }}% Achieved
-                            </span>
-                        </div>
-                        
-                        <div class="flex flex-col items-center py-6">
-                            <div class="relative w-48 h-48">
-                                <!-- Circular Progress SVG -->
-                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                                    <circle class="text-slate-100 dark:text-slate-800" stroke-width="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
-                                    <circle class="text-indigo-600 transition-all duration-1000 ease-out" 
-                                        stroke-width="8" 
-                                        stroke-dasharray="{{ 2 * pi() * 40 }}" 
-                                        stroke-dashoffset="{{ (1 - ($target_progress['percentage'] / 100)) * (2 * pi() * 40) }}" 
-                                        stroke-linecap="round" 
-                                        stroke="currentColor" 
-                                        fill="transparent" r="40" cx="50" cy="50" 
-                                    />
+    <!-- Primary Bento Grid (Productivity Focused) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Main Stats & Charts (Visual Core) -->
+        <div class="lg:col-span-3 space-y-8">
+            <!-- High Intensity KPI Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                @foreach([
+                    ['label' => 'Total Leads', 'val' => $stats['assigned_total'] ?? 0, 'icon' => 'users', 'color' => 'indigo'],
+                    ['label' => 'Calls Today', 'val' => $stats['calls_today'] ?? 0, 'icon' => 'phone', 'color' => 'blue'],
+                    ['label' => 'Revenue MTD', 'val' => '₹' . number_format(($stats['revenue'] ?? 0) / 1000, 1) . 'k', 'icon' => 'currency-rupee', 'color' => 'emerald'],
+                    ['label' => 'KPI Score', 'val' => ($kpi['total_score'] ?? 85) . '/100', 'icon' => 'zap', 'color' => 'amber'],
+                ] as $card)
+                    <div class="glass-card p-6 rounded-[2rem] hover:scale-105 transition-all">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-8 h-8 rounded-xl bg-{{ $card['color'] }}-500/10 flex items-center justify-center text-{{ $card['color'] }}-600">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                                 </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span class="text-3xl font-black text-slate-900 dark:text-white">₹{{ number_format($target_progress['achieved'] / 1000, 1) }}k</span>
-                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">of ₹{{ number_format($target_progress['amount'] / 100000, 1) }}L</span>
-                                </div>
                             </div>
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">{{ $card['label'] }}</span>
                         </div>
+                        <p class="text-2xl font-black text-slate-900 leading-none tracking-tighter">{{ $card['val'] }}</p>
                     </div>
-                </div>
-
-                <!-- Live Market Call -->
-                <div class="glass-card p-8 rounded-3xl bg-slate-900 text-white relative overflow-hidden group">
-                    <div class="relative z-10 h-full flex flex-col justify-between">
-                        <div>
-                            <div class="flex items-center gap-2 mb-4">
-                                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Advisory Call</span>
-                            </div>
-                            <h3 class="text-xl font-bold mb-2">"{{ $live_market_call->title ?? 'Nifty Breakout Alert' }}"</h3>
-                            <p class="text-sm text-slate-400 line-clamp-3">
-                                {{ $live_market_call->call_summary ?? 'Market showing strong resistance at 19,800. Suggested strategy: Bull Call Spread on weekly expiry.' }}
-                            </p>
-                        </div>
-                        <button class="mt-6 w-full py-3 bg-white text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-500 hover:text-white transition-all">
-                            Join Meeting Now
-                        </button>
-                    </div>
-                    <!-- Background aesthetic -->
-                    <div class="absolute top-0 right-0 p-8 opacity-10">
-                        <svg class="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                    </div>
-                </div>
+                @endforeach
             </div>
+
+            <!-- Activity Analytics -->
+            <div class="glass-card p-8 rounded-[2.5rem]">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900 tracking-tight">Performance Velocity</h3>
+                        <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">7-Day Engagement Patterns</p>
+                    </div>
+                    <div class="bg-slate-50 p-1.5 rounded-xl border border-slate-100 flex gap-2">
+                         <span class="px-4 py-1.5 rounded-lg bg-white shadow-sm text-[10px] font-black uppercase text-indigo-600">Calling Activity</span>
+                    </div>
+                </div>
+                <div id="baActivityChart" class="min-h-[300px]"></div>
+            </div>
+
+            <x-dashboard.priority-queue :leads="$my_leads ?? collect()" title="Next Best Actions" />
         </div>
 
-        <!-- Sidebar Widgets -->
-        <div class="space-y-8">
-            <!-- Leaderboard Widget -->
-            <x-dashboard.leaderboard :leaderboard="$leaderboard" />
+        <!-- Sticky Productivity Sidebar -->
+        <div class="lg:col-span-1 space-y-8">
+            <x-dashboard.bento-roadmap 
+                :targetProgress="$target_progress" 
+                :nextLead="$today_followups->first()" 
+                :upcomingFollowups="$upcoming_followups ?? collect()" 
+            />
 
-            <!-- Call Volume Chart -->
-            <div class="glass-card p-6 rounded-3xl min-h-[300px]">
-                <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">Activity Trend</h3>
-                <div class="h-48 relative">
-                    <canvas id="callVolumeChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Daily Goals -->
-            <div class="glass-card p-6 rounded-3xl">
-                <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4">Today's Goals</h3>
-                <div class="space-y-4">
-                    @php
-                        $goals = [
-                            ['label' => 'Calls Completed', 'done' => 12, 'target' => 50, 'color' => 'blue'],
-                            ['label' => 'New Demos', 'done' => 2, 'target' => 5, 'color' => 'emerald'],
-                            ['label' => 'Follow-ups', 'done' => 18, 'target' => 20, 'color' => 'amber'],
-                        ];
-                    @endphp
-                    @foreach($goals as $goal)
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between text-[11px] font-black uppercase tracking-widest">
-                                <span class="text-slate-500">{{ $goal['label'] }}</span>
-                                <span class="text-slate-900 dark:text-white">{{ $goal['done'] }}/{{ $goal['target'] }}</span>
-                            </div>
-                            <div class="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-{{ $goal['color'] }}-500 rounded-full animate-pulse" style="width: {{ ($goal['done']/$goal['target'])*100 }}%"></div>
-                            </div>
-                        </div>
-                    @endforeach
+            <!-- Market Intelligence -->
+            <div class="glass-card p-8 rounded-[2rem] bg-slate-900 text-white relative overflow-hidden group">
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-rose-500/20 transition-all duration-700"></div>
+                <div class="relative z-10 space-y-6">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Intel</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold mb-2">"{{ $live_market_call->title ?? 'Market Volatility Alert' }}"</h3>
+                        <p class="text-xs text-slate-400 line-clamp-2 italic opacity-80">
+                            {{ $live_market_call->call_summary ?? 'Stay defensive at current levels. Monitor 21,500 index support for fresh entries.' }}
+                        </p>
+                    </div>
+                    <button class="w-full py-4 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all">Join Broadcast →</button>
                 </div>
             </div>
         </div>
@@ -154,30 +87,52 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Call Volume Chart
-        const callCtx = document.getElementById('callVolumeChart')?.getContext('2d');
-        if (callCtx) {
-            new Chart(callCtx, {
+        // BA Activity Chart (7 Days)
+        const activityData = {!! json_encode(array_column($call_volume ?? [], 'count')) !!};
+        const activityLabels = {!! json_encode(array_column($call_volume ?? [], 'date')) !!};
+
+        const activityOptions = {
+            series: [{
+                name: 'Calls',
+                data: activityData
+            }],
+            chart: {
                 type: 'bar',
-                data: {
-                    labels: {!! json_encode(array_column($call_volume ?? [], 'date')) !!},
-                    datasets: [{
-                        label: 'Calls',
-                        data: {!! json_encode(array_column($call_volume ?? [], 'count')) !!},
-                        backgroundColor: '#4F46E5',
-                        borderRadius: 8,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        x: { grid: { display: false }, ticks: { font: { size: 10, weight: 'bold' } } },
-                        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10, weight: 'bold' } } }
-                    }
+                height: 300,
+                toolbar: { show: false },
+                fontFamily: 'Inter, sans-serif'
+            },
+            plotOptions: {
+                bar: {
+                    borderRadius: 8,
+                    columnWidth: '40%',
+                    distributed: false,
                 }
-            });
-        }
+            },
+            colors: ['#4F46E5'],
+            dataLabels: { enabled: false },
+            xaxis: {
+                categories: activityLabels,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: { colors: '#94a3b8', fontWeight: 700, fontSize: '10px' }
+                }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: '#94a3b8', fontWeight: 700, fontSize: '10px' }
+                }
+            },
+            grid: {
+                borderColor: '#f1f5f9',
+                strokeDashArray: 4,
+                xaxis: { lines: { show: false } }
+            },
+            tooltip: { theme: 'dark' }
+        };
+
+        const activityChart = new ApexCharts(document.querySelector("#baActivityChart"), activityOptions);
+        activityChart.render();
     });
 </script>

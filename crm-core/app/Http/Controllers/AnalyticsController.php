@@ -117,6 +117,52 @@ class AnalyticsController extends Controller
             ->whereBetween('payment_date', [$startDate, $endDate])
             ->sum('amount');
 
-        return view('analytics.index', compact('employeeMetrics', 'companyTarget', 'companyAchievement', 'filter'));
+        // Aggressive Predictive Engine (Focus on last 7 days velocity)
+        $sevenDaysAgo = now()->subDays(7)->startOfDay();
+        $recentRevenue = Payment::where('status', 'Verified')
+            ->whereBetween('payment_date', [$sevenDaysAgo, now()->endOfDay()])
+            ->sum('amount');
+        
+        $dailyVelocity = $recentRevenue / 7;
+        $daysRemaining = max(1, now()->diffInDays(now()->endOfMonth()));
+        $projectedRevenue = $companyAchievement + ($dailyVelocity * $daysRemaining);
+
+        return view('analytics.index', compact(
+            'employeeMetrics', 
+            'companyTarget', 
+            'companyAchievement', 
+            'projectedRevenue',
+            'dailyVelocity',
+            'filter'
+        ));
+    }
+
+    /**
+     * AI Endpoint: Run Ecosystem Audit
+     */
+    public function runAudit(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || !in_array($user->role, ['Admin', 'Manager'])) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Gather critical data for Gemini
+        $stats = [
+            'total_achievement' => Payment::where('status', 'Verified')->whereMonth('payment_date', now()->month)->sum('amount'),
+            'total_target' => User::where('role', '!=', 'Admin')->get()->sum(fn($u) => $u->currentTarget()?->amount ?? 0),
+            'top_agents' => Lead::where('status', 'Paid Client')->whereMonth('updated_at', now()->month)->selectRaw('assigned_to, count(*) as count')->groupBy('assigned_to')->orderByDesc('count')->limit(3)->with('assignee:id,name')->get(),
+            'bottlenecks' => Lead::where('status', 'Interested')->where('updated_at', '<', now()->subDays(3))->count(),
+        ];
+
+        $gemini = new \App\Services\GeminiService();
+        $prompt = "Act as a Macro Sales Auditor. Analyze these CRM stats for the current month: " . json_encode($stats) . ". 
+        Identify the 2 biggest operational bottlenecks and give 1 'Aggressive' strategic advice to hit the target. 
+        Keep it professional, high-fidelity, and concise.";
+
+        // We'll use a generic method since we don't have a specific 'audit' method yet
+        $advice = $gemini->getObjectionAdvice(auth()->user(), $prompt);
+
+        return response()->json(['audit' => $advice]);
     }
 }

@@ -41,86 +41,106 @@
         />
     </div>
 
-    <!-- Middle Section: Revenue Trends & Leaderboard -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Revenue Chart -->
-        <div class="lg:col-span-2 glass-card p-8 rounded-3xl min-h-[450px]">
-            <div class="flex items-center justify-between mb-8">
+    <!-- Main Dashboard Bento Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Revenue Trajectory (ApexCharts) -->
+        <div class="lg:col-span-3 glass-card p-10 rounded-[2.5rem] bg-white">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                 <div>
-                    <h3 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Revenue Trajectory</h3>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">MTD Performance vs Target</p>
+                    <h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Revenue Dynamics</h3>
+                    <p class="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">Enterprise Trajectory • MTD Performance</p>
                 </div>
-                <select class="bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500">
-                    <option>Last 30 Days</option>
-                    <option>This Month</option>
-                </select>
+                <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700">
+                    <button class="px-5 py-2.5 rounded-xl bg-white dark:bg-slate-700 text-[10px] font-black uppercase text-indigo-600 shadow-sm transition-all">Line</button>
+                    <button class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-indigo-600 transition-all">Bar</button>
+                    <div class="h-6 w-[2px] bg-slate-200 dark:bg-slate-600 mx-2"></div>
+                    <select class="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-slate-500 focus:ring-0">
+                        <option>Current Month</option>
+                        <option>Last Quarter</option>
+                    </select>
+                </div>
             </div>
             
-            <div class="h-80 w-full relative">
-                <!-- Placeholder for Chart.js -->
-                <canvas id="revenueChart"></canvas>
-            </div>
+            <div id="revenueChart" class="min-h-[400px]"></div>
         </div>
 
-        <!-- Leaderboard -->
-        <x-dashboard.leaderboard :leaderboard="$leaderboard" />
+        <!-- Productivity Roadmap -->
+        <div class="lg:col-span-1 h-full">
+            <x-dashboard.bento-roadmap 
+                :targetProgress="$target_progress" 
+                :nextLead="$today_followups->first()" 
+                :upcomingFollowups="$today_followups->skip(1)->take(4)" 
+            />
+        </div>
     </div>
 
-    <!-- Bottom Section: Detailed Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- System Health -->
-        <div class="glass-card p-8 rounded-3xl">
-            <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-6">System Health</h3>
-            <div class="space-y-6">
-                @foreach([
-                    ['label' => 'Lead Ingestion', 'status' => 'Healthy', 'val' => '100%', 'color' => 'emerald'],
-                    ['label' => 'Server Load', 'status' => 'Optimal', 'val' => '12%', 'color' => 'blue'],
-                    ['label' => 'Broadcasting', 'status' => 'Active', 'val' => '2.4ms', 'color' => 'indigo'],
-                ] as $health)
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2 h-2 rounded-full bg-{{ $health['color'] }}-500"></div>
-                            <span class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest">{{ $health['label'] }}</span>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-xs font-bold text-slate-900 dark:text-white">{{ $health['status'] }}</p>
-                            <p class="text-[10px] text-slate-400 font-bold">{{ $health['val'] }}</p>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
+    <!-- Secondary Insights Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Leaderboard -->
+        <div class="lg:col-span-1">
+            <x-dashboard.leaderboard :leaderboard="$leaderboard" />
         </div>
 
-        <!-- Pending Approvals Feed -->
-        <div class="lg:col-span-2 glass-card p-8 rounded-3xl overflow-hidden">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Pending Approvals</h3>
-                <a href="#" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">View Queue →</a>
+        <!-- System Health & Activity Feed -->
+        <div class="lg:col-span-2 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Health Metrics -->
+                <div class="glass-card p-8 rounded-[2rem]">
+                    <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.2em] mb-8">Ecosystem Health</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        @foreach([
+                            ['label' => 'Uptime', 'val' => '99.9%', 'color' => 'emerald'],
+                            ['label' => 'Latency', 'val' => '12ms', 'color' => 'blue'],
+                            ['label' => 'Sync', 'val' => 'Live', 'color' => 'indigo'],
+                            ['label' => 'Queue', 'val' => '0 pending', 'color' => 'rose'],
+                        ] as $item)
+                        <div class="space-y-1">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">{{ $item['label'] }}</p>
+                            <p class="text-xl font-black text-slate-800 dark:text-white">{{ $item['val'] }}</p>
+                            <div class="w-8 h-1 bg-{{ $item['color'] }}-500 rounded-full"></div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Active Agents (Mini) -->
+                <div class="glass-card p-8 rounded-[2rem] bg-indigo-600 text-white overflow-hidden relative">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                    <h3 class="text-sm font-black uppercase tracking-[0.2em] opacity-60 mb-8">Active Power</h3>
+                    <p class="text-5xl font-black tracking-tighter mb-2">{{ $stats['active_agents'] ?? 0 }}</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest opacity-80">Agents Online Now</p>
+                    <button class="mt-8 text-[9px] font-black uppercase tracking-[0.2em] py-3 px-6 bg-white/20 hover:bg-white/30 rounded-xl transition-all">Monitor Team →</button>
+                </div>
             </div>
-            <div class="space-y-4">
-                @forelse($pending_payments ?? [] as $payment)
-                    <div class="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 group hover:bg-slate-100 transition-all">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center font-black text-slate-400">
-                                {{ strtoupper(substr($payment->lead?->name ?? 'U', 0, 1)) }}
+
+            <!-- Approval Queue -->
+            <div class="glass-card p-8 rounded-[2rem]">
+                 <div class="flex items-center justify-between mb-8">
+                    <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Compliance Gate</h3>
+                    <a href="#" class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Verify All →</a>
+                </div>
+                <div class="space-y-4">
+                    @forelse($pending_payments ?? [] as $payment)
+                        <div class="flex items-center justify-between p-5 rounded-3xl bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all border border-transparent hover:border-slate-100 group">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center font-black text-slate-900 border border-slate-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                    {{ strtoupper(substr($payment->lead?->name ?? 'U', 0, 1)) }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-black text-slate-900">{{ $payment->lead?->name ?? 'Unknown Lead' }}</p>
+                                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">₹{{ number_format($payment->amount) }} • {{ $payment->package?->name ?? 'Premium Item' }}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p class="text-sm font-black text-slate-800 dark:text-white">{{ $payment->lead?->name ?? 'Unknown Lead' }}</p>
-                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic font-sans">{{ $payment->package?->name ?? 'No Package' }} • ₹{{ number_format($payment->amount) }}</p>
-                            </div>
+                            <button class="w-10 h-10 bg-white border border-slate-100 rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm hover:bg-emerald-500 hover:text-white transition-all">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+                            </button>
                         </div>
-                        <div class="flex gap-2">
-                             <button class="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all">Approve</button>
-                             <button class="p-2 bg-slate-200 dark:bg-slate-700 text-slate-600 rounded-xl hover:bg-rose-500 hover:text-white transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                             </button>
+                    @empty
+                        <div class="py-12 text-center opacity-40">
+                            <p class="text-[10px] font-black uppercase tracking-[0.3em] font-sans">Verification Queue Empty</p>
                         </div>
-                    </div>
-                @empty
-                    <div class="py-12 text-center opacity-30">
-                        <p class="text-xs font-black uppercase tracking-widest font-sans">Clear Skies! No Pending Items</p>
-                    </div>
-                @endforelse
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
@@ -128,48 +148,72 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const ctx = document.getElementById('revenueChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(79, 70, 229, 0.3)');
-        gradient.addColorStop(1, 'rgba(79, 70, 229, 0)');
+        const revenueTrend = {!! json_encode(array_values($revenue_trend ?? [])) !!};
+        const revenueLabels = {!! json_encode(array_keys($revenue_trend ?? [])) !!};
 
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode(array_keys($revenue_trend ?? [])) !!},
-                datasets: [{
-                    label: 'Revenue',
-                    data: {!! json_encode(array_values($revenue_trend ?? [])) !!},
-                    borderColor: '#4F46E5',
-                    borderWidth: 4,
-                    fill: true,
-                    backgroundColor: gradient,
-                    tension: 0.4,
-                    pointRadius: 0,
-                    pointHoverRadius: 6,
-                    pointHoverBackgroundColor: '#4F46E5',
-                    pointHoverBorderColor: '#fff',
-                    pointHoverBorderWidth: 3
-                }]
+        const options = {
+            series: [{
+                name: 'Revenue',
+                data: revenueTrend
+            }],
+            chart: {
+                type: 'area',
+                height: 400,
+                toolbar: { show: false },
+                zoom: { enabled: false },
+                fontFamily: 'Inter, sans-serif'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
-                        ticks: { font: { weight: 'bold', size: 10 } }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { weight: 'bold', size: 10 } }
+            colors: ['#4F46E5'],
+            dataLabels: { enabled: false },
+            stroke: {
+                curve: 'smooth',
+                width: 4
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.4,
+                    opacityTo: 0.05,
+                    stops: [0, 90, 100]
+                }
+            },
+            xaxis: {
+                categories: revenueLabels,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: {
+                    style: {
+                        colors: '#94a3b8',
+                        fontWeight: 700,
+                        fontSize: '10px'
                     }
                 }
+            },
+            yaxis: {
+                labels: {
+                    formatter: function (val) { return "₹" + (val / 1000) + "k" },
+                    style: {
+                        colors: '#94a3b8',
+                        fontWeight: 700,
+                        fontSize: '10px'
+                    }
+                }
+            },
+            grid: {
+                borderColor: '#f1f5f9',
+                strokeDashArray: 4
+            },
+            tooltip: {
+                theme: 'dark',
+                x: { show: true },
+                y: {
+                    title: { formatter: () => 'Revenue: ' }
+                }
             }
-        });
+        };
+
+        const chart = new ApexCharts(document.querySelector("#revenueChart"), options);
+        chart.render();
     });
 </script>

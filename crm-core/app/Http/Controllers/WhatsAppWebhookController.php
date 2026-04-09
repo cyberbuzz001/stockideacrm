@@ -92,51 +92,61 @@ class WhatsAppWebhookController extends Controller
     private function processKeywordLogic(Lead $lead, $text, $message)
     {
         $text = strtoupper(trim($text));
+        
+        // Use existing ClientProof if available, but pivot to LeadComplianceSteps for Step tracking
         $proof = $lead->clientProof;
 
-        if (!$proof && $lead->status === 'Paid Client') {
-             // Create proof record if missing for paid clients
-             // (Ideally we create this at the moment of payment approval)
-        }
-
-        if ($proof) {
-            if (str_contains($text, 'YES')) {
-                $proof->update([
-                    'has_confirmed_service' => true,
-                    'confirmed_service_at' => now(),
-                ]);
-                $lead->activities()->create([
-                    'action' => 'WhatsApp Proof: YES',
-                    'details' => 'Client confirmed Service Started via WhatsApp.',
-                ]);
-            }
-
-            if (str_contains($text, 'AGREE')) {
-                $proof->update([
-                    'has_agreed_terms' => true,
-                    'agreed_terms_at' => now(),
-                ]);
-                $lead->activities()->create([
-                    'action' => 'WhatsApp Proof: AGREE',
-                    'details' => 'Client accepted Terms & Conditions via WhatsApp.',
-                ]);
+        // Step 2: SERVICE ACTIVATION (YES)
+        if (str_contains($text, 'YES SERVICE STARTED') || ($text === 'YES')) {
+            $this->completeStep($lead, 'step_2_activation');
+            if ($proof) {
+                $proof->update(['has_confirmed_service' => true, 'confirmed_service_at' => now()]);
             }
         }
 
-        // Logic for Images (Trade Proof)
-        if ($message['type'] === 'image' && $proof) {
-            $currentPaths = $proof->usage_proof_paths ?? [];
-            $currentPaths[] = [
-                'id' => $message['image']['id'],
-                'type' => 'trade_screenshot',
-                'received_at' => now()->toDateTimeString(),
-            ];
-            $proof->update(['usage_proof_paths' => $currentPaths]);
+        // Step 3: TERMS ACCEPTANCE (AGREE)
+        if (str_contains($text, 'AGREE')) {
+            $this->completeStep($lead, 'step_3_terms');
+            if ($proof) {
+                $proof->update(['has_agreed_terms' => true, 'agreed_terms_at' => now()]);
+            }
+        }
+
+        // Step 8: SERVICE COMPLETION (SERVICE COMPLETED)
+        if (str_contains($text, 'SERVICE COMPLETED')) {
+            $this->completeStep($lead, 'step_8_completion');
+        }
+
+        // Logic for Images (Step 5: TRADE PROOF)
+        if ($message['type'] === 'image') {
+            $this->completeStep($lead, 'step_5_usage');
             
-            $lead->activities()->create([
-                'action' => 'WhatsApp Proof: Screenshot',
-                'details' => 'Received trade screenshot from client via WhatsApp.',
-            ]);
+            if ($proof) {
+                $currentPaths = $proof->usage_proof_paths ?? [];
+                $currentPaths[] = [
+                    'id' => $message['image']['id'],
+                    'type' => 'trade_screenshot',
+                    'received_at' => now()->toDateTimeString(),
+                ];
+                $proof->update(['usage_proof_paths' => $currentPaths]);
+            }
         }
+    }
+
+    private function completeStep(Lead $lead, string $stepKey)
+    {
+        $lead->complianceSteps()->updateOrCreate(
+            ['step_key' => $stepKey],
+            [
+                'status' => 'completed',
+                'completed_at' => now(),
+                'completed_by' => null, // Automated
+            ]
+        );
+
+        $lead->activities()->create([
+            'action' => 'Compliance Verified: ' . $stepKey,
+            'details' => "System automatically verified compliance step [$stepKey] via WhatsApp callback.",
+        ]);
     }
 }
