@@ -15,7 +15,18 @@ class KycRpmController extends Controller
         }
 
         $user = auth()->user();
-        if (!$user->hasPermission('compliance', 'view_kyc') && (int) $lead->assigned_to !== (int) $user->id) {
+        if ($user->hasPermission('compliance', 'view_kyc')) {
+             return;
+        }
+
+        if (in_array($user->role, ['Team Leader', 'SBA', 'Manager'], true)) {
+            $teamIds = $user->getAllTeamIds();
+            if (in_array((int) $lead->assigned_to, $teamIds, true)) {
+                return;
+            }
+        }
+
+        if ((int) $lead->assigned_to !== (int) $user->id) {
              abort(403);
         }
 

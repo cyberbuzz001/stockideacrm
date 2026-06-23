@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
     Route::post('leads/{lead}/activity', [LeadController::class, 'storeActivity'])->name('leads.activity');
     Route::post('leads/{lead}/notes', [LeadController::class, 'saveNotes'])->name('leads.notes');
     Route::post('leads/{lead}/messages', [LeadController::class, 'storeMessage'])->name('leads.messages');
+    Route::post('leads/{lead}/ai-draft', [LeadController::class, 'aiDraftMessage'])->name('leads.ai-draft');
     Route::post('leads/{lead}/update-rich-details', [LeadController::class, 'updateRichDetails'])->name('leads.update-rich-details');
     Route::post('leads/{lead}/quick-log', [LeadController::class, 'quickLog'])->name('leads.quick-log');
     Route::post('leads/{lead}/escalate', [LeadController::class, 'escalate'])->name('leads.escalate');

@@ -27,14 +27,14 @@ class LeadDocumentController extends Controller
         if ($user->role === 'Admin') {
             return;
         }
-        if ($user->role === 'Manager' || $user->role === 'SBA') {
+        if ($user->role === 'Manager' || $user->role === 'SBA' || $user->role === 'Team Leader') {
             $teamIds = $user->getAllTeamIds();
-            if (!in_array($lead->assigned_to, $teamIds, true)) {
+            if (!in_array((int) $lead->assigned_to, $teamIds, true)) {
                 abort(403);
             }
             return;
         }
-        if ($lead->assigned_to !== $user->id) {
+        if ((int) $lead->assigned_to !== (int) $user->id) {
             abort(403);
         }
     }

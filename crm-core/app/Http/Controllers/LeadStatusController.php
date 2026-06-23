@@ -20,8 +20,14 @@ class LeadStatusController extends Controller
         if (!$user || !in_array($user->role, ['Admin', 'Manager', 'SBA', 'BA'])) {
             abort(403);
         }
-        if (in_array($user->role, ['SBA', 'BA']) && (int) $lead->assigned_to !== (int) $user->id) {
+        if ($user->role === 'BA' && (int) $lead->assigned_to !== (int) $user->id) {
             abort(403);
+        }
+        if ($user->role === 'SBA') {
+            $teamIds = $user->getAllTeamIds();
+            if (!in_array((int) $lead->assigned_to, $teamIds, true)) {
+                abort(403);
+            }
         }
 
         $validated = $request->validate([

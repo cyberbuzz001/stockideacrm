@@ -814,12 +814,88 @@ class LeadController extends Controller
             'message' => 'required|string|max:1000',
         ]);
 
-        $lead->messages()->create([
+        $message = $lead->messages()->create([
             'user_id' => $user->id,
             'message' => $this->sanitizeText($validated['message']),
         ]);
 
+        // Run sentiment & urgency classification via Ollama
+        try {
+            $prompt = "Analyze the sentiment and urgency of the following communication message:
+            Message: \"{$message->message}\"
+            
+            Respond with a strict JSON format with keys:
+            - 'sentiment': one of \"positive\", \"neutral\", \"negative\"
+            - 'urgency': one of \"low\", \"medium\", \"high\"
+            
+            Return ONLY the valid JSON block. Example output:
+            {\"sentiment\": \"neutral\", \"urgency\": \"low\"}";
+
+            $response = \EchoLabs\Prism\Prism::text()
+                ->using('ollama', config('services.ollama.model', 'phi3'))
+                ->withPrompt($prompt)
+                ->generate();
+
+            $resultText = trim($response->text);
+            
+            // Extract JSON if model added some text surrounding it
+            if (preg_match('/\{.*\}/s', $resultText, $matches)) {
+                $resultText = $matches[0];
+            }
+
+            $data = json_decode($resultText, true);
+
+            if (is_array($data)) {
+                $sentiment = strtolower($data['sentiment'] ?? 'neutral');
+                $urgency = strtolower($data['urgency'] ?? 'low');
+
+                if (in_array($sentiment, ['positive', 'neutral', 'negative'])) {
+                    $message->sentiment = $sentiment;
+                }
+                if (in_array($urgency, ['low', 'medium', 'high'])) {
+                    $message->urgency = $urgency;
+                }
+                $message->save();
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('AI Sentiment Analysis failed: ' . $e->getMessage());
+        }
+
         return back()->with('success', 'Message posted.');
+    }
+
+    public function aiDraftMessage(Request $request, Lead $lead)
+    {
+        $user = auth()->user();
+        $this->authorizeLead($lead, $user);
+
+        $validated = $request->validate([
+            'prompt' => 'required|string|max:1000',
+            'mode' => 'required|string|in:sms,email,whatsapp',
+        ]);
+
+        try {
+            $companyName = \App\Models\SystemSetting::get('company_name', config('app.name'));
+            
+            $response = \EchoLabs\Prism\Prism::text()
+                ->using('ollama', config('services.ollama.model', 'phi3'))
+                ->withPrompt("You are a helpful CRM sales assistant at Shreesvarn CRM. Write a professional, personalized follow-up message for the lead '{$lead->name}' (status: {$lead->status}) to be sent via {$validated['mode']}.
+                
+                Additional constraints/instructions for this draft: \"{$validated['prompt']}\"
+                
+                Rules:
+                - Keep it concise, engaging, and friendly.
+                - Signed by: {$user->name}
+                - Company: {$companyName}
+                - Do NOT include any placeholder text (like [Date] or [Your Name]). Use the provided values.
+                - Return ONLY the final message content, no introductions or explanations.")
+                ->generate();
+
+            return response()->json(['draft' => trim($response->text)]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('AI Message Drafting Error: ' . $e->getMessage());
+            return response()->json(['error' => 'AI is temporarily unavailable. Details: ' . $e->getMessage()], 500);
+        }
     }
 
     public function bulkReassign(Request $request)
@@ -934,7 +1010,7 @@ class LeadController extends Controller
 
         $validated = $request->validate([
             'bulk_text' => 'required|string',
-            'format' => 'required|in:name_mobile,mobile_only,name_mobile_email',
+            'format' => 'required|in:name_mobile,mobile_only,name_mobile_email,vertical_kv',
         ]);
 
         $lines = explode("\n", $validated['bulk_text']);
@@ -942,63 +1018,108 @@ class LeadController extends Controller
         $duplicates = 0;
         $errors = [];
 
-        foreach ($lines as $lineNumber => $line) {
-            $line = trim($line);
-            if (empty($line)) {
-                continue;
+        if ($validated['format'] === 'vertical_kv') {
+            $currentLead = [];
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+
+                // Split by tab, comma, or pipe (max 2 parts to handle values with separators)
+                $parts = preg_split('/[,\t|]/', $line, 2);
+                if (count($parts) < 2) continue;
+
+                $key = strtolower(trim($parts[0]));
+                $value = trim($parts[1], " \t\n\r\0\x0B\""); // Strip quotes too
+
+                $normKey = null;
+                if (str_contains($key, 'fullname') || str_contains($key, 'name')) $normKey = 'name';
+                elseif (str_contains($key, 'mobile') || str_contains($key, 'phone')) $normKey = 'mobile';
+                elseif (str_contains($key, 'email')) $normKey = 'email';
+                elseif (str_contains($key, 'city') || str_contains($key, 'location')) $normKey = 'city';
+
+                if (!$normKey) continue;
+
+                // If we see a repeat of a key (e.g. another fullName), it means a new lead starts
+                if (isset($currentLead[$normKey])) {
+                    $res = $this->createLeadFromImport($currentLead, $user);
+                    if ($res === 'imported') $imported++;
+                    elseif ($res === 'duplicate') $duplicates++;
+                    $currentLead = [];
+                }
+                $currentLead[$normKey] = $value;
             }
+            // Process final lead in buffer
+            if (!empty($currentLead)) {
+                $res = $this->createLeadFromImport($currentLead, $user);
+                if ($res === 'imported') $imported++;
+                elseif ($res === 'duplicate') $duplicates++;
+            }
+        } else {
+            foreach ($lines as $lineNumber => $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
 
-            try {
-                $parts = preg_split('/[,\t|]/', $line);
-                $parts = array_map('trim', $parts);
+                try {
+                    $parts = preg_split('/[,\t|]/', $line);
+                    $parts = array_map('trim', $parts);
+                    
+                    $leadData = [];
+                    if ($validated['format'] === 'mobile_only') {
+                        $leadData['mobile'] = $parts[0] ?? null;
+                        $leadData['name'] = 'Lead ' . substr((string) ($leadData['mobile'] ?? '0000'), -4);
+                    } elseif ($validated['format'] === 'name_mobile') {
+                        $leadData['name'] = $parts[0] ?? 'N/A';
+                        $leadData['mobile'] = $parts[1] ?? null;
+                    } elseif ($validated['format'] === 'name_mobile_email') {
+                        $leadData['name'] = $parts[0] ?? 'N/A';
+                        $leadData['mobile'] = $parts[1] ?? null;
+                        $leadData['email'] = $parts[2] ?? null;
+                    }
 
-                $leadData = [
-                    'source' => 'Bulk Text Import',
-                    'assigned_by' => $user->id,
-                    'status' => 'Cold Lead',
-                ];
-
-                if ($validated['format'] === 'mobile_only') {
-                    $mobile = $parts[0] ?? null;
-                    $leadData['name'] = 'Lead ' . substr((string) $mobile, -4);
-                    $leadData['mobile'] = $mobile;
-                } elseif ($validated['format'] === 'name_mobile') {
-                    $leadData['name'] = $parts[0] ?? 'N/A';
-                    $leadData['mobile'] = $parts[1] ?? null;
-                } elseif ($validated['format'] === 'name_mobile_email') {
-                    $leadData['name'] = $parts[0] ?? 'N/A';
-                    $leadData['mobile'] = $parts[1] ?? null;
-                    $leadData['email'] = $parts[2] ?? null;
+                    $res = $this->createLeadFromImport($leadData, $user);
+                    if ($res === 'imported') $imported++;
+                    elseif ($res === 'duplicate') $duplicates++;
+                    elseif ($res === 'error') $errors[] = 'Line ' . ($lineNumber + 1) . ': Missing mobile number';
+                } catch (\Exception $e) {
+                    $errors[] = 'Line ' . ($lineNumber + 1) . ': ' . $e->getMessage();
                 }
-
-                if (empty($leadData['mobile'])) {
-                    $errors[] = 'Line ' . ($lineNumber + 1) . ': Missing mobile number';
-                    continue;
-                }
-
-                if (Lead::where('mobile', $leadData['mobile'])->exists()) {
-                    $duplicates++;
-                    continue;
-                }
-
-                $lead = Lead::create($this->sanitizeArray($leadData));
-                $this->scorer->updateScore($lead);
-                $imported++;
-
-            } catch (\Exception $e) {
-                $errors[] = 'Line ' . ($lineNumber + 1) . ': ' . $e->getMessage();
             }
         }
 
         $message = 'Import complete. ' . $imported . ' leads added';
-        if ($duplicates > 0) {
-            $message .= ', ' . $duplicates . ' duplicates skipped';
-        }
-        if (count($errors) > 0) {
-            $message .= ', ' . count($errors) . ' errors';
-        }
+        if ($duplicates > 0) $message .= ', ' . $duplicates . ' duplicates skipped';
+        if (count($errors) > 0) $message .= ', ' . count($errors) . ' errors';
 
         return redirect()->route('leads.index')->with('success', $message);
+    }
+
+    private function createLeadFromImport(array $data, $user): string
+    {
+        if (empty($data['mobile'])) return 'error';
+        
+        $mobile = preg_replace('/[^0-9]/', '', $data['mobile']);
+        if (empty($mobile)) return 'error';
+
+        if (Lead::where('mobile', $mobile)->exists()) {
+            return 'duplicate';
+        }
+
+        $lead = Lead::create($this->sanitizeArray([
+            'name' => $data['name'] ?? 'N/A',
+            'mobile' => $mobile,
+            'email' => $data['email'] ?? null,
+            'city' => $data['city'] ?? null,
+            'status' => 'Cold Lead',
+            'lead_score' => 10,
+            'source' => 'Bulk Text Import',
+            'assigned_by' => $user->id
+        ]));
+
+        if (isset($this->scorer)) {
+            $this->scorer->updateScore($lead);
+        }
+
+        return 'imported';
     }
 
     public function saveNotes(Request $request, Lead $lead)

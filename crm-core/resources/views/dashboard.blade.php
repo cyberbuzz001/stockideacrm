@@ -138,7 +138,42 @@
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
+
+                <!-- Sales Mastery Widget (Rotating Every 30 Min as requested for Shreesvarn CRM) -->
+                @php
+                    $masteryFile = resource_path('data/sales_mastery.json');
+                    $tips = file_exists($masteryFile) ? json_decode(file_get_contents($masteryFile)) : [];
+                @endphp
+                @if(!empty($tips))
+                <div x-data="{ 
+                    tips: {{ json_encode($tips) }},
+                    currentIndex: 0,
+                    init() {
+                        setInterval(() => {
+                            this.currentIndex = (this.currentIndex + 1) % this.tips.length;
+                        }, 1800000);
+                    }
+                }" class="bg-gradient-to-r from-indigo-600 to-purple-700 rounded-[24px] p-6 text-white shadow-xl shadow-indigo-200/50 mb-8 relative overflow-hidden group">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+                    <div class="relative flex items-center justify-between gap-6">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="bg-white/20 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">💡 Sales Mastery Tip</span>
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            </div>
+                            <h2 class="text-xl font-black tracking-tight mb-2" x-text="tips[currentIndex].title"></h2>
+                            <p class="text-indigo-50 text-sm font-medium leading-relaxed max-w-2xl" x-text="tips[currentIndex].description"></p>
+                        </div>
+                        <div class="hidden sm:flex flex-col items-end gap-1">
+                            <div class="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
+                                <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
 
                 <!-- KPI STRIP (Admin) -->
                 @php

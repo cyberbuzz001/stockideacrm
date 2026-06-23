@@ -312,7 +312,7 @@
                         </form>
                     </div>
 
-                    <!-- Message Center (Templates) -->
+                    <!-- Message Center (Templates & AI Draft) -->
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border border-indigo-100 mb-6" x-data="messageCenter()">
                         <div class="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 class="text-lg font-bold text-indigo-900 flex items-center gap-2">
@@ -320,7 +320,7 @@
                                 Message Center
                             </h3>
                             <div class="flex items-center gap-2">
-                                <select @change="loadTemplates($el.value)" class="text-xs rounded-lg border-slate-200 font-bold focus:ring-indigo-500">
+                                <select @change="selectedType = $el.value; loadTemplates($el.value)" class="text-xs rounded-lg border-slate-200 font-bold focus:ring-indigo-500">
                                     <option value="sms">SMS Templates</option>
                                     <option value="email">Email Templates</option>
                                 </select>
@@ -337,6 +337,20 @@
                                         <option :value="tpl.id" x-text="tpl.name"></option>
                                     </template>
                                 </select>
+                            </div>
+
+                            <!-- AI Drafting Input -->
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100/80">
+                                <label class="text-[10px] font-black text-indigo-600 uppercase tracking-widest block mb-1">AI Smart Draft 🤖</label>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="aiPrompt" placeholder="Write about... (e.g. ask for demat account details, follow up on callback)" class="flex-1 text-xs border-slate-200 rounded-lg focus:ring-indigo-500">
+                                    <button type="button" @click="draftWithAi()" :disabled="aiLoading" class="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs px-3 py-2 rounded-lg font-bold transition flex items-center gap-1 shadow-sm">
+                                        <template x-if="aiLoading">
+                                            <svg class="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        </template>
+                                        <span x-text="aiLoading ? 'Drafting...' : 'Draft'"></span>
+                                    </button>
+                                </div>
                             </div>
 
                             <form action="{{ route('leads.messages', $lead) }}" method="POST">
@@ -370,7 +384,20 @@
                                 @forelse($lead->messages->sortByDesc('created_at') as $msg)
                                     <div class="bg-slate-50 rounded-xl p-3 border border-slate-100">
                                         <div class="flex justify-between items-center mb-1">
-                                            <span class="text-[10px] font-black text-indigo-600">{{ $msg->user->name }}</span>
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="text-[10px] font-black text-indigo-600">{{ $msg->user->name }}</span>
+                                                @if($msg->sentiment === 'positive')
+                                                    <span class="text-[8px] font-bold bg-green-50 text-green-700 px-1 py-0.2 rounded border border-green-200">😊 Positive</span>
+                                                @elseif($msg->sentiment === 'negative')
+                                                    <span class="text-[8px] font-bold bg-rose-50 text-rose-700 px-1 py-0.2 rounded border border-rose-200">😠 Negative</span>
+                                                @elseif($msg->sentiment === 'neutral')
+                                                    <span class="text-[8px] font-bold bg-slate-50 text-slate-600 px-1 py-0.2 rounded border border-slate-200">😐 Neutral</span>
+                                                @endif
+                                                
+                                                @if($msg->urgency === 'high')
+                                                    <span class="text-[8px] font-bold bg-amber-50 text-amber-700 px-1 py-0.2 rounded border border-amber-200 animate-pulse">⚠️ High</span>
+                                                @endif
+                                            </div>
                                             <span class="text-[9px] text-slate-400 font-bold uppercase">{{ $msg->created_at->format('d M, h:i A') }}</span>
                                         </div>
                                         <p class="text-xs text-slate-600 leading-relaxed">{{ $msg->message }}</p>
@@ -382,22 +409,92 @@
                         </div>
                     </div>
 
-                    <!-- Activity History (Section 8) -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                        <h3 class="text-lg font-bold mb-4 border-b pb-2">Activity History</h3>
-                        <div class="space-y-4">
-                            @forelse(($lead?->activities ?? collect())->sortByDesc('created_at') as $activity)
-                                <div class="border-l-2 border-blue-500 pl-4 py-2">
-                                    <div class="flex justify-between items-center">
-                                        <span class="font-bold text-sm">{{ $activity->activity_type }}</span>
-                                        <span
-                                            class="text-xs text-gray-400">{{ $activity->created_at?->format('d M, H:i') ?? '' }}</span>
+                    <!-- Unified Activity Timeline -->
+                    @php
+                        $timeline = collect()
+                            ->merge(
+                                ($lead->activities ?? collect())->map(fn($item) => [
+                                    'type' => 'activity',
+                                    'title' => $item->activity_type,
+                                    'notes' => $item->notes,
+                                    'user' => $item->user->name ?? 'System',
+                                    'date' => $item->created_at,
+                                    'icon' => match(strtolower($item->activity_type)) {
+                                        'call started' => '📞',
+                                        'duplicate attempt' => '⚠️',
+                                        'lead assigned' => '👤',
+                                        'status updated', 'call outcome' => '🔄',
+                                        default => '⚙️'
+                                    },
+                                ])
+                            )
+                            ->merge(
+                                ($lead->messages ?? collect())->map(fn($item) => [
+                                    'type' => 'message',
+                                    'title' => 'Sent Message',
+                                    'notes' => $item->message,
+                                    'user' => $item->user->name ?? 'User',
+                                    'date' => $item->created_at,
+                                    'icon' => '✉️',
+                                    'sentiment' => $item->sentiment,
+                                    'urgency' => $item->urgency
+                                ])
+                            )
+                            ->merge(
+                                ($lead->payments ?? collect())->map(fn($item) => [
+                                    'type' => 'payment',
+                                    'title' => "Payment: " . ($item->status ?? 'Pending'),
+                                    'notes' => "Amount: INR " . number_format((float) $item->amount) . " | Mode: " . ($item->payment_mode ?? 'N/A') . " - " . ($item->remarks ?? ''),
+                                    'user' => $item->user->name ?? 'User',
+                                    'date' => $item->payment_date ?? $item->created_at,
+                                    'icon' => '💰',
+                                ])
+                            )
+                            ->sortByDesc('date');
+                    @endphp
+
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 border border-slate-100">
+                        <div class="border-b pb-3 mb-6">
+                            <h3 class="text-lg font-bold text-slate-800">Unified Activity Timeline</h3>
+                            <p class="text-xs text-slate-500">Chronological history of all communications, calls, and payments.</p>
+                        </div>
+                        
+                        <div class="relative border-l-2 border-slate-100 ml-4 pl-6 space-y-6">
+                            @forelse($timeline as $event)
+                                <div class="relative">
+                                    <!-- Icon sphere -->
+                                    <span class="absolute -left-[37px] top-0.5 bg-white border-2 border-slate-100 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-sm z-10">
+                                        {{ $event['icon'] }}
+                                    </span>
+                                    
+                                    <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100/80 hover:border-indigo-100 transition shadow-sm">
+                                        <div class="flex justify-between items-start flex-wrap gap-2 mb-1.5">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="font-bold text-sm text-slate-900">{{ $event['title'] }}</h4>
+                                                @if($event['type'] === 'message' && !empty($event['sentiment']))
+                                                    @if($event['sentiment'] === 'positive')
+                                                        <span class="text-[9px] font-bold bg-green-50 text-green-700 px-1.5 py-0.5 rounded border border-green-200">😊 Positive</span>
+                                                    @elseif($event['sentiment'] === 'negative')
+                                                        <span class="text-[9px] font-bold bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200">😠 Negative</span>
+                                                    @elseif($event['sentiment'] === 'neutral')
+                                                        <span class="text-[9px] font-bold bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">😐 Neutral</span>
+                                                    @endif
+                                                @endif
+                                                
+                                                @if($event['type'] === 'message' && ($event['urgency'] ?? '') === 'high')
+                                                    <span class="text-[9px] font-bold bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 animate-pulse">⚠️ High Urgency</span>
+                                                @endif
+                                            </div>
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{{ $event['date']?->format('d M Y, h:i A') ?? '' }}</span>
+                                        </div>
+                                        <p class="text-sm text-slate-600 leading-relaxed font-medium italic mb-2">"{{ $event['notes'] }}"</p>
+                                        <div class="flex items-center gap-1.5 text-xs text-slate-400 font-bold">
+                                            <span>👤 By: {{ $event['user'] }}</span>
+                                        </div>
                                     </div>
-                                    <p class="text-sm text-gray-600 italic">{{ $activity->notes }}</p>
-                                    <span class="text-xs text-gray-400">— {{ $activity?->user?->name ?? 'User' }}</span>
                                 </div>
                             @empty
-                                <p class="text-gray-500 text-sm italic text-center">No history yet.</p>
+                                <p class="text-slate-400 text-sm italic text-center py-4">No events or activities logged yet.</p>
                             @endforelse
                         </div>
                     </div>
@@ -727,6 +824,9 @@
                 leadMobile: "{{ $lead->mobile }}",
                 agentName: "{{ auth()->user()->name }}",
                 companyName: "{{ \App\Models\SystemSetting::get('company_name', config('app.name')) }}",
+                aiPrompt: '',
+                aiLoading: false,
+                selectedType: 'sms',
 
                 init() {
                     this.loadTemplates('sms');
@@ -754,6 +854,38 @@
                         body = body.replace(/{agent}/g, this.agentName);
                         body = body.replace(/{company}/g, this.companyName);
                         this.messageBody = body;
+                    }
+                },
+
+                async draftWithAi() {
+                    if (!this.aiPrompt.trim()) {
+                        alert('Please describe what you want the AI to write.');
+                        return;
+                    }
+                    this.aiLoading = true;
+                    try {
+                        const response = await fetch("{{ route('leads.ai-draft', $lead) }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                prompt: this.aiPrompt,
+                                mode: this.selectedType
+                            })
+                        });
+                        const data = await response.json();
+                        if (data.draft) {
+                            this.messageBody = data.draft;
+                            this.aiPrompt = '';
+                        } else if (data.error) {
+                            alert(data.error);
+                        }
+                    } catch (e) {
+                        alert('Failed to draft message: ' + e.message);
+                    } finally {
+                        this.aiLoading = false;
                     }
                 },
 
