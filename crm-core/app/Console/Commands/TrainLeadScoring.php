@@ -92,10 +92,38 @@ class TrainLeadScoring extends Command
 
         $this->info('Training model on ' . count($samples) . ' historical samples...');
 
+        // Filter out constant columns (variance = 0) to prevent "Matrix is singular" errors
+        $numFeatures = count($samples[0]);
+        $activeFeatureIndices = [];
+        for ($i = 0; $i < $numFeatures; $i++) {
+            $values = array_column($samples, $i);
+            $uniqueValues = array_unique($values);
+            if (count($uniqueValues) > 1) {
+                $activeFeatureIndices[] = $i;
+            }
+        }
+
+        if (empty($activeFeatureIndices)) {
+            $this->error('All features are constant. Cannot train model.');
+            return 1;
+        }
+
+        $this->info('Active features selected (indices): ' . implode(', ', $activeFeatureIndices));
+
+        // Rebuild samples with only active features
+        $filteredSamples = [];
+        foreach ($samples as $sample) {
+            $filteredSample = [];
+            foreach ($activeFeatureIndices as $index) {
+                $filteredSample[] = $sample[$index];
+            }
+            $filteredSamples[] = $filteredSample;
+        }
+
         try {
-            // 3. Train LeastSquares model
+            // 3. Train LeastSquares model on filtered samples
             $regression = new LeastSquares();
-            $regression->train($samples, $targets);
+            $regression->train($filteredSamples, $targets);
 
             // 4. Save model to storage
             $dir = storage_path('app/ai');
@@ -104,10 +132,14 @@ class TrainLeadScoring extends Command
             }
 
             $modelPath = $dir . '/lead_scoring_model.txt';
+            $indicesPath = $dir . '/lead_scoring_indices.json';
+            
             $modelManager = new ModelManager();
             $modelManager->saveToFile($regression, $modelPath);
+            file_put_contents($indicesPath, json_encode($activeFeatureIndices));
 
             $this->info("Model successfully trained and saved to: {$modelPath}");
+            $this->info("Model indices saved to: {$indicesPath}");
             return 0;
         } catch (\Exception $e) {
             $this->error('Failed to train or save model: ' . $e->getMessage());

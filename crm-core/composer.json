@@ -10,8 +10,8 @@
         "doctrine/dbal": "^4.4",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "php-ai/php-ml": "*",
-        "prism-php/prism": "*",
+        "php-ai/php-ml": "^0.10.0",
+        "prism-php/prism": "^0.100.1",
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.6"
     },

@@ -22,8 +22,21 @@ class LeadScoringService
                 $modelManager = new ModelManager();
                 $model = $modelManager->restoreFromFile($modelPath);
                 
+                $indicesPath = storage_path('app/ai/lead_scoring_indices.json');
+                $indices = file_exists($indicesPath) ? json_decode(file_get_contents($indicesPath), true) : null;
+                
                 $activityCount = $lead->activities()->count();
-                $features = self::extractFeatures($lead, $activityCount);
+                $allFeatures = self::extractFeatures($lead, $activityCount);
+                
+                // Filter features based on trained active indices
+                $features = [];
+                if (is_array($indices)) {
+                    foreach ($indices as $index) {
+                        $features[] = $allFeatures[$index] ?? 0;
+                    }
+                } else {
+                    $features = $allFeatures;
+                }
                 
                 $prediction = $model->predict($features);
                 

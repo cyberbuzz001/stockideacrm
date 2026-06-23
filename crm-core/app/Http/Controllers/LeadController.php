@@ -831,7 +831,7 @@ class LeadController extends Controller
             Return ONLY the valid JSON block. Example output:
             {\"sentiment\": \"neutral\", \"urgency\": \"low\"}";
 
-            $response = \EchoLabs\Prism\Prism::text()
+            $response = \Prism\Prism\Facades\Prism::text()
                 ->using('ollama', config('services.ollama.model', 'phi3'))
                 ->withPrompt($prompt)
                 ->generate();
@@ -877,7 +877,7 @@ class LeadController extends Controller
         try {
             $companyName = \App\Models\SystemSetting::get('company_name', config('app.name'));
             
-            $response = \EchoLabs\Prism\Prism::text()
+            $response = \Prism\Prism\Facades\Prism::text()
                 ->using('ollama', config('services.ollama.model', 'phi3'))
                 ->withPrompt("You are a helpful CRM sales assistant at Shreesvarn CRM. Write a professional, personalized follow-up message for the lead '{$lead->name}' (status: {$lead->status}) to be sent via {$validated['mode']}.
                 
