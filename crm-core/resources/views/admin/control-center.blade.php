@@ -401,52 +401,57 @@
                         <div x-show="provider !== 'none'">
                             <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">
                                 <span x-text="provider === 'evolution' ? 'API Key (apikey)' : 'Permanent Token'">Permanent Token</span>
-                                    <input type="password" value="{{ $settings['whatsapp_api_key'] ?? '' }}" 
+                            </label>
+                            <input type="password" value="{{ $settings['whatsapp_api_key'] ?? '' }}" 
                                    class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5"
                                    onchange="saveSetting('whatsapp_api_key', this.value)">
                         </div>
+                        
                         <template x-if="provider === 'meta'">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 mb-1 block">WhatsApp Phone Number ID</label>
-                                <input type="text" value="{{ $settings['whatsapp_api_phone_id'] ?? '' }}" 
-                                       class="w-full rounded-xl border-slate-200 text-sm font-medium focus:ring-emerald-500" 
-                                       onchange="saveSetting('whatsapp_api_phone_id', this.value)">
-                            </div>
-                            
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 mb-1 block">WhatsApp Business Account (WABA) ID</label>
-                                <input type="text" value="{{ $settings['whatsapp_business_account_id'] ?? '' }}" 
-                                       class="w-full rounded-xl border-slate-200 text-sm font-medium focus:ring-emerald-500" 
-                                       onchange="saveSetting('whatsapp_business_account_id', this.value)">
-                                <p class="text-[10px] text-slate-400 mt-1">Required to sync Meta Templates.</p>
-                            </div>
-                            
-                            <div class="pt-2">
-                                <button type="button" onclick="syncMetaTemplates(this)" class="w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-2 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                    Sync Meta Templates
-                                </button>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Phone Number ID</label>
+                                    <input type="text" value="{{ $settings['whatsapp_api_phone_id'] ?? '' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_api_phone_id', this.value)">
+                                </div>
+                                
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">WABA ID</label>
+                                    <input type="text" value="{{ $settings['whatsapp_business_account_id'] ?? '' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_business_account_id', this.value)">
+                                </div>
+                                
+                                <div class="pt-2">
+                                    <button type="button" onclick="syncMetaTemplates(this)" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition shadow flex justify-center items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        Sync Meta Templates
+                                    </button>
+                                </div>
                             </div>
                         </template>
                         
                         <template x-if="provider === 'evolution'">
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 mb-1 block">Evolution API Base URL</label>
-                                <input type="text" value="{{ $settings['whatsapp_evolution_url'] ?? 'http://localhost:8080' }}" 
-                                       class="w-full rounded-xl border-slate-200 text-sm font-medium focus:ring-emerald-500" 
-                                       onchange="saveSetting('whatsapp_evolution_url', this.value)">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-500 mb-1 block">Evolution Instance Name</label>
-                                <input type="text" value="{{ $settings['whatsapp_evolution_instance'] ?? 'shreesvarn' }}" 
-                                       class="w-full rounded-xl border-slate-200 text-sm font-medium focus:ring-emerald-500" 
-                                       onchange="saveSetting('whatsapp_evolution_instance', this.value)">
-                            </div>
-                            <div class="pt-2">
-                                <button type="button" onclick="loadWhatsAppQRCode()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl transition shadow flex justify-center items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                    Get WhatsApp QR Code
-                                </button>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Evolution API Base URL</label>
+                                    <input type="text" value="{{ $settings['whatsapp_evolution_url'] ?? 'http://localhost:8080' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_evolution_url', this.value)">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Instance Name</label>
+                                    <input type="text" value="{{ $settings['whatsapp_evolution_instance'] ?? 'shreesvarn' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_evolution_instance', this.value)">
+                                </div>
+                                <div class="pt-2">
+                                    <button type="button" onclick="loadWhatsAppQRCode()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition shadow flex justify-center items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                        Get QR Code
+                                    </button>
+                                </div>
                             </div>
                         </template>
                         
