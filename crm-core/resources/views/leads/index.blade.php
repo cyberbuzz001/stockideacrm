@@ -1,10 +1,13 @@
+@php
+    $viewScope = $viewScope ?? 'self';
+@endphp
 <x-app-layout>
     <div class="p-4 sm:p-6 max-w-[1600px] mx-auto space-y-6">
 
         <!-- Page Header & Actions -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Leads Pipeline</h1>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Leads Pipeline</h1>
                 <p class="text-sm text-slate-500 mt-1">Manage, rank, and convert your leads</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -61,7 +64,7 @@
                     ];
                 @endphp
                 @foreach($tabs as $key => $tab)
-                    <a href="{{ route('leads.index', ['tab' => $key]) }}"
+                    <a href="{{ route('leads.index', array_merge(request()->query(), ['tab' => $key])) }}"
                        class="whitespace-nowrap flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all
                        {{ $activeTab === $key ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50' }}">
                         <svg class="w-4 h-4 {{ $activeTab === $key ? 'text-indigo-400' : 'text-slate-400' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $tab['icon'] }}"/></svg>
@@ -72,6 +75,26 @@
                     </a>
                 @endforeach
             </div>
+
+            <!-- View Scope Toggle (Self vs Team) -->
+            @if(auth()->user()->hasPermission('leads', 'view_team'))
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shadow-inner mx-2">
+                    <a href="{{ route('leads.index', array_merge(request()->query(), ['scope' => 'self'])) }}" 
+                       class="px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all {{ $viewScope === 'self' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700' }}">
+                        🎯 My Leads
+                    </a>
+                    <a href="{{ route('leads.index', array_merge(request()->query(), ['scope' => 'team'])) }}" 
+                       class="px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all {{ $viewScope === 'team' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700' }}">
+                        👥 Team
+                    </a>
+                    @if(in_array(auth()->user()->role, ['Admin', 'Manager']))
+                    <a href="{{ route('leads.index', array_merge(request()->query(), ['scope' => 'all'])) }}" 
+                       class="px-4 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all {{ $viewScope === 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700' }}">
+                        🌐 All
+                    </a>
+                    @endif
+                </div>
+            @endif
 
             @if(auth()->user()->role !== 'Admin')
                 <form action="{{ route('leads.fetch') }}" method="POST" class="w-full sm:w-auto pr-2">
@@ -88,18 +111,19 @@
         <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
             <form method="GET" action="{{ route('leads.index') }}" class="flex flex-wrap items-end gap-4">
                 <input type="hidden" name="tab" value="{{ $activeTab }}">
+                <input type="hidden" name="scope" value="{{ $viewScope }}">
                 <div class="flex-1 min-w-[200px]">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Search Leads</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         </div>
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Name or mobile..." class="w-full pl-10 rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Name or mobile..." class="w-full pl-10 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:text-slate-200">
                     </div>
                 </div>
                 <div class="w-full sm:w-48">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Disposition</label>
-                    <select name="status" class="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500 font-semibold text-slate-700">
+                    <select name="status" class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-indigo-500 font-semibold text-slate-700 dark:text-slate-200">
                         <option value="">All Statuses</option>
                         @foreach(['Call Back', 'Follow Up', 'NPC', 'Switch Off', 'Not Reachable', 'Free Trial', 'Trading', 'Make Payment', 'Expected Payment', 'Paid Client'] as $st)
                             <option value="{{ $st }}" {{ request('status') == $st ? 'selected' : '' }}>{{ $st }}</option>
@@ -109,7 +133,7 @@
                 <!-- Source Filter -->
                 <div class="w-full sm:w-48">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Source</label>
-                    <select name="source" class="w-full rounded-xl border-slate-200 text-sm focus:ring-indigo-500 font-semibold text-slate-700">
+                    <select name="source" class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm focus:ring-indigo-500 font-semibold text-slate-700 dark:text-slate-200">
                         <option value="">All Sources</option>
                         @foreach(['Direct', 'Social Media', 'Referral', 'Website', 'CSV Upload'] as $src)
                             <option value="{{ $src }}" {{ request('source') == $src ? 'selected' : '' }}>{{ $src }}</option>
@@ -120,7 +144,7 @@
                 <!-- AI Score Sort -->
                 <div class="w-full sm:w-48">
                     <label class="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">AI Sort 🔥</label>
-                    <select name="ai_sort" class="w-full rounded-xl border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 bg-indigo-50/50 text-sm font-bold text-indigo-900">
+                    <select name="ai_sort" class="w-full rounded-xl border-indigo-200 dark:border-indigo-800 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm py-2 bg-indigo-50/50 dark:bg-indigo-900/30 text-sm font-bold text-indigo-900 dark:text-indigo-300">
                         <option value="">Default Sort</option>
                         <option value="desc" {{ request('ai_sort') == 'desc' ? 'selected' : '' }}>Highest AI Score First</option>
                         <option value="asc" {{ request('ai_sort') == 'asc' ? 'selected' : '' }}>Lowest AI Score First</option>
@@ -129,7 +153,7 @@
                 <div class="flex items-center gap-2">
                     <button type="submit" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors">Apply Filters</button>
                     @if(request()->hasAny(['search', 'status', 'source']))
-                        <a href="{{ route('leads.index', ['tab' => $activeTab]) }}" class="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors">Clear</a>
+                        <a href="{{ route('leads.index', ['tab' => $activeTab, 'scope' => $viewScope]) }}" class="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors">Clear</a>
                     @endif
                 </div>
             </form>
@@ -156,9 +180,10 @@
         <form action="{{ route('leads.assign') }}" method="POST" id="assignForm" class="relative">
             @csrf
             <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
+                <!-- Desktop Table View -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50/70 border-b border-slate-100">
+                        <thead class="bg-slate-50/70 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700">
                             <tr>
                                 @if(auth()->user()->role === 'Admin')
                                     <th class="px-5 py-4 w-12 text-center">
@@ -172,9 +197,9 @@
                                 <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-50 relative">
+                        <tbody class="divide-y divide-slate-50 dark:divide-slate-800 relative">
                             @forelse($leads as $lead)
-                                <tr class="hover:bg-slate-50/80 transition-colors group">
+                                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                                     @if(auth()->user()->role === 'Admin')
                                         <td class="px-5 py-4 text-center">
                                             <input type="checkbox" name="lead_ids[]" value="{{ $lead->id }}" class="lead-checkbox rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer">
@@ -188,11 +213,11 @@
                                                 {{ substr($lead->name ?: '?', 0, 2) }}
                                             </div>
                                             <div>
-                                                <a href="{{ route('leads.show', $lead->id) }}" class="font-bold text-slate-900 hover:text-indigo-600 transition-colors text-base">
+                                                <a href="{{ route('leads.show', $lead->id) }}" class="font-bold text-slate-900 dark:text-white hover:text-indigo-600 transition-colors text-base">
                                                     {{ $lead->name ?: 'Unknown Lead' }}
                                                 </a>
                                                 <div class="flex items-center gap-3 mt-1">
-                                                    <a href="tel:{{ $lead->mobile }}" title="Call" class="text-xs text-slate-500 font-mono hover:text-indigo-600 transition-colors flex items-center gap-1">
+                                                    <a href="tel:{{ $lead->mobile }}" title="Call" class="text-base text-slate-900 dark:text-white font-bold hover:text-indigo-600 transition-colors flex items-center gap-1">
                                                         📱 {{ $lead->mobile }}
                                                     </a>
                                                     @php
@@ -280,13 +305,22 @@
                                     <!-- Action -->
                                     <td class="px-6 py-4 text-right">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('leads.show', $lead->id) }}#activities" title="View Disposition History" class="inline-flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 w-9 h-9 rounded-xl transition-colors shadow-sm">
+                                            <a href="{{ route('leads.show', $lead->id) }}#activities" title="View Disposition History" class="inline-flex items-center justify-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 hover:border-indigo-200 w-9 h-9 rounded-xl transition-colors shadow-sm">
                                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                             </a>
                                             <button type="button" onclick='openQuickResponse(@json($lead))' class="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm">
                                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
                                                 Connect
                                             </button>
+                                            @if(auth()->user()->role === 'Admin')
+                                                <form action="{{ route('leads.destroy', $lead->id) }}" method="POST" onsubmit="return confirm('CRITICAL: This will permanently delete this lead and ALL its history/payments. Proceed?');" class="inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" title="Delete Lead Forever" class="inline-flex items-center justify-center bg-white border border-rose-100 text-rose-400 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 w-9 h-9 rounded-xl transition-colors shadow-sm">
+                                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -304,6 +338,69 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Mobile Card View -->
+                <div class="md:hidden divide-y divide-slate-100">
+                    @forelse($leads as $lead)
+                        <div class="p-4 space-y-4 hover:bg-slate-50 transition-colors">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">
+                                        {{ substr($lead->name ?: '?', 0, 2) }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <a href="{{ route('leads.show', $lead->id) }}" class="font-bold text-slate-900 block truncate">{{ $lead->name ?: 'Unknown' }}</a>
+                                        <p class="text-base text-slate-900 dark:text-white font-bold">📱 {{ $lead->mobile }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                                    @if($lead->lead_score > 50)
+                                        <span class="text-[10px] font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100 uppercase tracking-tighter">AI 🔥 {{ $lead->lead_score }}</span>
+                                    @endif
+                                    @if(auth()->user()->role === 'Admin')
+                                        <input type="checkbox" name="lead_ids[]" value="{{ $lead->id }}" class="lead-checkbox rounded-md border-slate-300 text-indigo-600 w-5 h-5">
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-wrap items-center gap-2">
+                                @php
+                                    $lcol = \App\Services\LeadStatusService::getStatusColor($lead->status);
+                                    $licn = \App\Services\LeadStatusService::getStatusIcon($lead->status);
+                                    $lcolClass = $lcol === 'gray' || $lcol === 'slate' ? 'bg-slate-100 text-slate-700 border-slate-200' : "bg-{$lcol}-50 text-{$lcol}-700 border-{$lcol}-200";
+                                @endphp
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase border {{ $lcolClass }}">
+                                    {{ $licn }} {{ $lead->status }}
+                                </span>
+                                @if($lead->follow_up_date)
+                                    <span class="text-[10px] font-bold text-slate-400">🗓️ {{ \Carbon\Carbon::parse($lead->follow_up_date)->format('d M, h:i A') }}</span>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-2">
+                                <a href="{{ route('leads.show', $lead->id) }}" class="flex-1 flex justify-center items-center gap-2 bg-slate-50 text-slate-600 font-bold py-2.5 rounded-xl text-xs border border-slate-200">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    View
+                                </a>
+                                <button type="button" onclick='openQuickResponse(@json($lead))' class="flex-1 flex justify-center items-center gap-2 bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow-md shadow-indigo-100 hover:bg-indigo-700 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    Connect
+                                </button>
+                                @if(auth()->user()->role === 'Admin')
+                                    <form action="{{ route('leads.destroy', $lead->id) }}" method="POST" onsubmit="return confirm('Delete Lead Forever?');" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="p-2 bg-rose-50 text-rose-600 rounded-xl border border-rose-100 shadow-sm">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-10 text-center text-slate-400 text-sm font-bold">No leads found in this view.</div>
+                    @endforelse
+                </div>
                 
                 @if($leads instanceof \Illuminate\Pagination\AbstractPaginator && $leads->hasPages())
                     <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
@@ -314,12 +411,15 @@
 
             <!-- Sticky Bulk Actions Bar (Admin Only) -->
             @if(auth()->user()->role === 'Admin')
-                <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-slate-700 shadow-2xl p-3 rounded-2xl flex items-center gap-4 transition-all duration-300 translate-y-24 opacity-0 pointer-events-none z-40">
-                    <div class="bg-indigo-500 text-white w-8 h-8 rounded-full flex justify-center items-center text-xs font-black shadow-inner" id="selectedCountCircle">0</div>
-                    <div class="h-6 w-px bg-slate-700"></div>
+                <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 border border-slate-700 shadow-2xl p-3 rounded-2xl flex flex-col md:flex-row items-center gap-4 transition-all duration-300 translate-y-24 opacity-0 pointer-events-none z-40 max-w-[90vw]">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <div class="bg-indigo-500 text-white w-8 h-8 rounded-full flex justify-center items-center text-xs font-black shadow-inner" id="selectedCountCircle">0</div>
+                        <span class="text-white text-[10px] font-black uppercase md:hidden tracking-widest">Leads Selected</span>
+                        <div class="hidden md:block h-6 w-px bg-slate-700"></div>
+                    </div>
                     
                     <div class="flex items-center gap-2">
-                        <select id="bulk_user_id" class="bg-slate-800 border-slate-700 text-slate-200 text-sm rounded-xl py-2 pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500 font-semibold">
+                        <select id="bulk_user_id" name="agent_id" class="bg-slate-800 border-slate-700 text-slate-200 text-sm rounded-xl py-2 pl-3 pr-8 focus:ring-indigo-500 focus:border-indigo-500 font-semibold">
                             <option value="">Reassign to Agent...</option>
                             @foreach(App\Models\User::where('role', '!=', 'Admin')->get() as $agent)
                                 <option value="{{ $agent->id }}">{{ $agent->name }}</option>
@@ -332,7 +432,7 @@
                     <div class="h-6 w-px bg-slate-700 mx-1"></div>
 
                     <div class="flex items-center gap-2">
-                        <select id="bulk_status" class="bg-slate-800 border-slate-700 text-slate-200 text-sm rounded-xl py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500 font-semibold">
+                        <select id="bulk_status" name="status" class="bg-slate-800 border-slate-700 text-slate-200 text-sm rounded-xl py-2 pl-3 pr-8 focus:ring-emerald-500 focus:border-emerald-500 font-semibold">
                             <option value="">Change Status...</option>
                             @foreach(['Call Back', 'Follow Up', 'NPC', 'Switch Off', 'Not Reachable', 'Free Trial', 'Trading', 'Make Payment', 'Expected Payment', 'Paid Client'] as $st)
                                 <option value="{{ $st }}">{{ $st }}</option>
@@ -357,8 +457,8 @@
     <!-- Create Lead Modal (Modernized) -->
     <div id="createLeadModal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeCreateModal()"></div>
-        <div class="absolute inset-x-4 top-[10vh] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden scale-95 transition-transform duration-300" id="createLeadModalContent">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+        <div class="absolute inset-x-4 top-[10vh] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden scale-95 transition-transform duration-300" id="createLeadModalContent">
+            <div class="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
                 <div>
                     <h3 class="text-xl font-black text-slate-900 tracking-tight">Add New Lead</h3>
                     <p class="text-xs text-slate-500 font-medium mt-1">Enter prospect details manually.</p>
@@ -441,18 +541,18 @@
 
                 <!-- Header / Name -->
                 <div class="relative">
-                    <label class="absolute -top-2.5 left-3 bg-white px-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest z-10">Lead Name</label>
-                    <input type="text" name="name" id="qName" class="w-full text-lg font-black text-slate-800 border-2 border-indigo-100 rounded-xl px-4 py-3 focus:border-indigo-500 focus:ring-0 transition-colors bg-white shadow-sm" placeholder="Name">
+                    <label class="absolute -top-2.5 left-3 bg-white dark:bg-slate-900 px-1.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest z-10 transition-colors">Lead Name</label>
+                    <input type="text" name="name" id="qName" class="w-full text-lg font-black text-slate-800 dark:text-white border-2 border-indigo-100 dark:border-slate-700 rounded-xl px-4 py-3 focus:border-indigo-500 focus:ring-0 transition-colors bg-white dark:bg-slate-800 shadow-sm" placeholder="Name">
                 </div>
 
                 <!-- Primary Action Section (Disposition) -->
-                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                <div class="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 transition-colors">
                     <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                         <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                         Disposition Status *
                     </label>
-                    <select name="status" id="quickStatusSelect" onchange="toggleQuickFields()" class="w-full border-slate-200 rounded-xl p-3 font-bold text-slate-800 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors cursor-pointer" required>
-                        <option value="">-- Choose Update --</option>
+                    <select name="status" id="quickStatusSelect" onchange="toggleQuickFields()" class="w-full border-slate-200 dark:border-slate-700 rounded-xl p-3 font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-all cursor-pointer" required>
+                        <option value="" class="text-slate-400">-- Choose Update --</option>
                         @foreach(\App\Services\LeadStatusService::getStatusDefinitions() as $st => $def)
                             @if($st !== 'Paid Client')
                                 <option value="{{ $st }}">{{ $st }}</option>
@@ -463,25 +563,25 @@
                     </select>
 
                     <!-- Dynamic Fields -->
-                    <div id="qFollowupGroup" class="mt-4 hidden animate-fadeIn bg-indigo-50 p-3 rounded-xl border border-indigo-100/50">
-                        <label class="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">Scheduled Follow-up Date/Time</label>
-                        <input type="datetime-local" name="follow_up_date" class="w-full border-white/50 bg-white rounded-lg p-2.5 text-sm font-bold text-indigo-900 focus:ring-indigo-500">
+                    <div id="qFollowupGroup" class="mt-4 hidden animate-fadeIn bg-indigo-50 dark:bg-indigo-900/40 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-800/50">
+                        <label class="block text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-1.5">Scheduled Follow-up Date/Time</label>
+                        <input type="datetime-local" name="follow_up_date" class="w-full border-white/50 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg p-2.5 text-sm font-bold text-indigo-900 dark:text-indigo-200 focus:ring-indigo-500">
                     </div>
 
-                    <div id="qTrialGroup" class="mt-4 hidden animate-fadeIn bg-cyan-50 p-3 rounded-xl border border-cyan-100/50">
-                        <label class="block text-[10px] font-black text-cyan-700 uppercase tracking-widest mb-1.5">Trial Expiry Date</label>
-                        <input type="date" name="trial_end_date" class="w-full border-white/50 bg-white rounded-lg p-2.5 text-sm font-bold text-cyan-900 focus:ring-cyan-500">
+                    <div id="qTrialGroup" class="mt-4 hidden animate-fadeIn bg-cyan-50 dark:bg-cyan-900/30 p-3 rounded-xl border border-cyan-100/50 dark:border-cyan-800/50">
+                        <label class="block text-[10px] font-black text-cyan-700 dark:text-cyan-400 uppercase tracking-widest mb-1.5">Trial Expiry Date</label>
+                        <input type="date" name="trial_end_date" class="w-full border-white/50 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg p-2.5 text-sm font-bold text-cyan-900 dark:text-cyan-200 focus:ring-cyan-500">
                     </div>
 
-                    <div id="qPaymentGroup" class="mt-4 hidden animate-fadeIn bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <div id="qPaymentGroup" class="mt-4 hidden animate-fadeIn bg-emerald-50 dark:bg-emerald-900/30 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
                         <div class="grid grid-cols-2 gap-3 mb-3">
                             <div>
-                                <label class="block text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1.5">Expected Amount (INR)</label>
-                                <input type="number" name="amount" placeholder="5000" class="w-full border-white rounded-lg p-2.5 text-sm font-bold text-emerald-900 focus:ring-emerald-500 shadow-sm">
+                                <label class="block text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1.5">Expected Amount (INR)</label>
+                                <input type="number" name="amount" placeholder="5000" class="w-full border-white dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg p-2.5 text-sm font-bold text-emerald-900 dark:text-emerald-200 focus:ring-emerald-500 shadow-sm">
                             </div>
                             <div>
-                                <label class="block text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1.5">Expected Mode</label>
-                                <select name="payment_mode" class="w-full border-white rounded-lg p-2.5 text-sm font-bold text-emerald-900 focus:ring-emerald-500 shadow-sm">
+                                <label class="block text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-1.5">Expected Mode</label>
+                                <select name="payment_mode" class="w-full border-white dark:border-slate-700 bg-white dark:bg-slate-800 rounded-lg p-2.5 text-xs font-bold text-emerald-900 dark:text-emerald-200 focus:ring-emerald-500 shadow-sm">
                                     <option value="UPI">UPI</option>
                                     <option value="NEFT">NEFT/RTGS</option>
                                     <option value="Cash">Cash</option>

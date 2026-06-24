@@ -63,6 +63,7 @@ class EmployeeController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'string', 'in:Manager,Team Leader,SBA,BA'],
             'parent_id' => ['nullable', 'exists:users,id'],
+            'whatsapp_phone_id' => ['nullable', 'string', 'max:255'],
         ]);
 
         $user = User::create([
@@ -71,6 +72,7 @@ class EmployeeController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'parent_id' => $request->parent_id,
+            'whatsapp_phone_id' => $request->whatsapp_phone_id,
             'is_active' => true,
         ]);
 
@@ -102,6 +104,7 @@ class EmployeeController extends Controller
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', 'string', 'in:Manager,Team Leader,SBA,BA'],
             'parent_id' => ['nullable', 'exists:users,id'],
+            'whatsapp_phone_id' => ['nullable', 'string', 'max:255'],
         ]);
 
         $data = [
@@ -109,6 +112,7 @@ class EmployeeController extends Controller
             'email' => $request->email,
             'role' => $request->role,
             'parent_id' => $request->parent_id,
+            'whatsapp_phone_id' => $request->whatsapp_phone_id,
             'is_active' => $request->has('is_active') ? true : false,
         ];
 

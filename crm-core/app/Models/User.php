@@ -27,6 +27,7 @@ class User extends Authenticatable
         'lead_weight',
         'last_login_at',
         'last_login_ip',
+        'whatsapp_phone_id',
     ];
 
     protected $hidden = [
@@ -119,5 +120,27 @@ class User extends Authenticatable
             // Admins have everything by default if not specified
             return $this->role === 'Admin';
         });
+    }
+
+    /**
+     * Get the WhatsApp Phone ID and Token for this user.
+     * Checks user's own setting, then manager's setting, then global system setting.
+     */
+    public function getWhatsAppCredentials()
+    {
+        $token = \App\Models\SystemSetting::get('whatsapp_api_key');
+        
+        if (!empty($this->whatsapp_phone_id)) {
+            return ['phone_id' => $this->whatsapp_phone_id, 'token' => $token];
+        }
+
+        if ($this->manager && !empty($this->manager->whatsapp_phone_id)) {
+            return ['phone_id' => $this->manager->whatsapp_phone_id, 'token' => $token];
+        }
+
+        return [
+            'phone_id' => \App\Models\SystemSetting::get('whatsapp_api_phone_id'),
+            'token' => $token
+        ];
     }
 }

@@ -36,17 +36,31 @@ class LeadController extends Controller
 
         $userRole = $user->role;
         // ═══════════════════════════════════════════
-        // RBAC FETCHING LOGIC
+        // RBAC & VIEW SCOPE FETCHING LOGIC
         // ═══════════════════════════════════════════
+        $defaultScope = 'self';
         if ($user->hasPermission('leads', 'view_all')) {
-            // Admin/Manager (if allowed) sees all leads
+            $defaultScope = 'all';
         } elseif ($user->hasPermission('leads', 'view_team')) {
+            $defaultScope = 'team';
+        }
+
+        $viewScope = $request->query('scope', $defaultScope);
+
+        // Enforce permissions on the requested scope
+        if ($viewScope === 'all' && !$user->hasPermission('leads', 'view_all')) {
+            $viewScope = $user->hasPermission('leads', 'view_team') ? 'team' : 'self';
+        }
+        if ($viewScope === 'team' && !$user->hasPermission('leads', 'view_team')) {
+            $viewScope = 'self';
+        }
+
+        if ($viewScope === 'all') {
+            // No assignment filter
+        } elseif ($viewScope === 'team') {
             $teamIds = $user->getAllTeamIds();
             $query->whereIn('assigned_to', $teamIds);
-        } elseif ($user->hasPermission('leads', 'view_own')) {
-            $query->where('assigned_to', $user->id);
-        } else {
-            // No permission to view leads? Default to own or abort.
+        } else { // 'self'
             $query->where('assigned_to', $user->id);
         }
 
@@ -132,7 +146,7 @@ class LeadController extends Controller
         }
 
         $leads = $query->with('assignee')->paginate(15)->withQueryString();
-        return view('leads.index', compact('leads', 'activeTab', 'assignedCount', 'unassignedCount'));
+        return view('leads.index', compact('leads', 'activeTab', 'assignedCount', 'unassignedCount', 'viewScope'));
     }
 
     public function fetchLeads()
@@ -814,15 +828,32 @@ class LeadController extends Controller
             'message' => 'required|string|max:1000',
         ]);
 
+        $messageText = $this->sanitizeText($validated['message']);
+        $prefix = '';
+        $sendError = null;
+        $failed = false;
+
+        // If requested to send via CRM WhatsApp
+        if ($request->filled('send_via_whatsapp')) {
+            $response = \App\Services\WhatsAppService::sendText($lead->mobile, $messageText);
+            if (!$response['success']) {
+                $failed = true;
+                $prefix = '[Failed to Send via WA] ';
+                $sendError = $response['message'];
+            } else {
+                $prefix = '[Sent via WA] ';
+            }
+        }
+
         $message = $lead->messages()->create([
             'user_id' => $user->id,
-            'message' => $this->sanitizeText($validated['message']),
+            'message' => $prefix . $messageText,
         ]);
 
         // Run sentiment & urgency classification via Ollama
         try {
             $prompt = "Analyze the sentiment and urgency of the following communication message:
-            Message: \"{$message->message}\"
+            Message: \"{$messageText}\"
             
             Respond with a strict JSON format with keys:
             - 'sentiment': one of \"positive\", \"neutral\", \"negative\"
@@ -861,7 +892,133 @@ class LeadController extends Controller
             \Illuminate\Support\Facades\Log::warning('AI Sentiment Analysis failed: ' . $e->getMessage());
         }
 
+        if ($request->filled('send_via_whatsapp')) {
+            if ($failed) {
+                return back()->with('error', 'Failed to dispatch WhatsApp: ' . $sendError);
+            }
+            return back()->with('success', 'Message dispatched via WhatsApp and logged.');
+        }
+
         return back()->with('success', 'Message posted.');
+    }
+
+    public function getChatHistory(Lead $lead)
+    {
+        $user = auth()->user();
+        $this->authorizeLead($lead, $user);
+
+        $messages = \App\Models\WhatsAppMessageLog::where('lead_id', $lead->id)
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($msg) {
+                return [
+                    'id' => $msg->id,
+                    'direction' => $msg->direction,
+                    'content' => $msg->content,
+                    'status' => $msg->status,
+                    'created_at' => $msg->created_at->format('M d, H:i A'),
+                    'media_type' => $msg->media_type,
+                ];
+            });
+
+        return response()->json(['messages' => $messages]);
+    }
+
+    public function sendChatMessage(Request $request, Lead $lead)
+    {
+        $user = auth()->user();
+        $this->authorizeLead($lead, $user);
+
+        $validated = $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+
+        $messageText = $this->sanitizeText($validated['message']);
+        
+        $response = \App\Services\WhatsAppService::sendText($lead->mobile, $messageText);
+        
+        if (!$response['success']) {
+            return response()->json(['success' => false, 'message' => $response['message']], 400);
+        }
+
+        // Log the outbound message to WhatsAppMessageLog
+        $log = \App\Models\WhatsAppMessageLog::create([
+            'direction' => 'outbound',
+            'from_number' => $user->getWhatsAppCredentials()['phone_id'] ?? 'global', // This is just informational here
+            'to_number' => $lead->mobile,
+            'content' => $messageText,
+            'media_type' => 'text',
+            'status' => 'sent',
+            'lead_id' => $lead->id,
+        ]);
+
+        // Also log to regular LeadMessage for timeline consistency
+        $lead->messages()->create([
+            'user_id' => $user->id,
+            'message' => '[Sent via WA Chat] ' . $messageText,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'log' => [
+                'id' => $log->id,
+                'direction' => $log->direction,
+                'content' => $log->content,
+                'status' => $log->status,
+                'created_at' => $log->created_at->format('M d, H:i A'),
+                'media_type' => $log->media_type,
+            ]
+        ]);
+    }
+
+    public function sendChatTemplate(Request $request, Lead $lead)
+    {
+        $user = auth()->user();
+        $this->authorizeLead($lead, $user);
+
+        $validated = $request->validate([
+            'template_name' => 'required|string|max:255',
+            'language_code' => 'nullable|string|max:20',
+        ]);
+
+        $templateName = $validated['template_name'];
+        $languageCode = $validated['language_code'] ?? 'en_US';
+        
+        $response = \App\Services\WhatsAppService::sendTemplate($lead->mobile, $templateName, $languageCode);
+        
+        if (!$response['success']) {
+            return response()->json(['success' => false, 'message' => $response['message']], 400);
+        }
+
+        // Log the outbound template message to WhatsAppMessageLog
+        $log = \App\Models\WhatsAppMessageLog::create([
+            'direction' => 'outbound',
+            'from_number' => $user->getWhatsAppCredentials()['phone_id'] ?? 'global',
+            'to_number' => $lead->mobile,
+            'content' => "[Template: {$templateName}]",
+            'media_type' => 'template',
+            'status' => 'sent',
+            'lead_id' => $lead->id,
+            'template_name' => $templateName,
+        ]);
+
+        // Also log to regular LeadMessage for timeline consistency
+        $lead->messages()->create([
+            'user_id' => $user->id,
+            'message' => '[Sent WA Template] ' . $templateName,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'log' => [
+                'id' => $log->id,
+                'direction' => $log->direction,
+                'content' => $log->content,
+                'status' => $log->status,
+                'created_at' => $log->created_at->format('M d, H:i A'),
+                'media_type' => $log->media_type,
+            ]
+        ]);
     }
 
     public function aiDraftMessage(Request $request, Lead $lead)
@@ -1242,3 +1399,4 @@ class LeadController extends Controller
         return $input;
     }
 }
+
