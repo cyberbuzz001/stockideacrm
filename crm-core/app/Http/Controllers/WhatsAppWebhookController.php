@@ -38,13 +38,73 @@ class WhatsAppWebhookController extends Controller
         
         Log::info('WhatsApp Webhook Incoming', $payload);
 
-        // Extract message data
+        // Detect Evolution API webhook format
+        if (isset($payload['event']) && isset($payload['data'])) {
+            $event = strtolower($payload['event']);
+            if ($event !== 'messages.upsert' && $event !== 'messages_upsert') {
+                return response('OK');
+            }
+
+            $data = $payload['data'];
+            $remoteJid = $data['key']['remoteJid'] ?? '';
+            $from = explode('@', $remoteJid)[0];
+            if (!$from) return response('OK');
+
+            $messageId = $data['key']['id'] ?? uniqid();
+            
+            // Extract text message content
+            $text = $data['message']['conversation'] ?? '';
+            if (empty($text) && isset($data['message']['extendedTextMessage']['text'])) {
+                $text = $data['message']['extendedTextMessage']['text'];
+            }
+
+            $isImage = isset($data['message']['imageMessage']);
+            $mediaType = $data['messageType'] ?? 'text';
+            if ($isImage) {
+                $mediaType = 'image';
+            }
+
+            // Find Lead
+            $lead = $this->findLeadByNumber($from);
+
+            // Log inbound message
+            WhatsAppMessageLog::create([
+                'direction' => 'inbound',
+                'from_number' => $from,
+                'to_number' => $payload['sender'] ?? 'N/A', // Instance sender number
+                'message_id' => $messageId,
+                'content' => $text ?: ($isImage ? 'Media: Image' : 'Unknown Content'),
+                'media_type' => $mediaType,
+                'status' => 'received',
+                'lead_id' => $lead ? $lead->id : null,
+            ]);
+
+            if ($lead) {
+                $this->processKeywordLogic($lead, $text, $data['message']);
+            }
+
+            return response('OK');
+        }
+
+        // Fallback to Meta Cloud API webhook format
         $entry = $payload['entry'][0] ?? null;
         if (!$entry) return response('OK');
 
         $change = $entry['changes'][0] ?? null;
         if (!$change || ($change['value']['messaging_product'] ?? '') !== 'whatsapp') return response('OK');
 
+        // Check for Status Updates (sent, delivered, read, failed)
+        $statusUpdate = $change['value']['statuses'][0] ?? null;
+        if ($statusUpdate) {
+            $msgId = $statusUpdate['id'];
+            $status = $statusUpdate['status']; // e.g. 'sent', 'delivered', 'read', 'failed'
+            
+            // Try to find the outbound log and update its status
+            // Note: Our outbound log doesn't store the Meta message ID yet, but we can match by to_number and recent time if we wanted to.
+            // Wait, we don't have message_id saved in outbound. It's okay, we'll update based on the status field we have if we add messageId handling later.
+            Log::info("WhatsApp Status Update: {$msgId} - {$status}");
+            return response('OK');
+        }
         $message = $change['value']['messages'][0] ?? null;
         if (!$message) return response('OK');
 
@@ -118,13 +178,15 @@ class WhatsAppWebhookController extends Controller
         }
 
         // Logic for Images (Step 5: TRADE PROOF)
-        if ($message['type'] === 'image') {
+        $isImage = (isset($message['type']) && $message['type'] === 'image') || isset($message['imageMessage']);
+        if ($isImage) {
             $this->completeStep($lead, 'step_5_usage');
             
             if ($proof) {
                 $currentPaths = $proof->usage_proof_paths ?? [];
+                $imageId = $message['image']['id'] ?? $message['imageMessage']['key']['id'] ?? uniqid();
                 $currentPaths[] = [
-                    'id' => $message['image']['id'],
+                    'id' => $imageId,
                     'type' => 'trade_screenshot',
                     'received_at' => now()->toDateTimeString(),
                 ];

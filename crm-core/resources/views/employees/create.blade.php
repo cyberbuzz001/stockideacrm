@@ -75,6 +75,13 @@
                             </select>
                             <p class="text-xs text-gray-500 mt-1">Assign a Manager or SBA as the supervisor.</p>
                         </div>
+                        <!-- WhatsApp Phone ID (Optional) -->
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-bold mb-2">WhatsApp Phone Number ID (Optional)</label>
+                            <input type="text" name="whatsapp_phone_id" value="{{ old('whatsapp_phone_id') }}" placeholder="e.g. 1243120625541995"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <p class="text-xs text-gray-500 mt-1">Leave empty to use the Manager's or Global default Phone ID.</p>
+                        </div>
 
                         <!-- Active Status Toggle -->
                         <div class="mb-6 flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
@@ -87,6 +94,7 @@
                                 <p class="text-sm font-bold text-gray-800">Account Active</p>
                                 <p class="text-xs text-gray-400">If disabled, the user cannot log in to the CRM.</p>
                             </div>
+                        </div>
                         </div>
 
                         <div class="flex items-center justify-end mt-4">

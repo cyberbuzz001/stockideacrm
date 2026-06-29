@@ -9,6 +9,9 @@ class MessageTemplate extends Model
     protected $fillable = [
         'name',
         'type',
+        'language',
+        'meta_id',
+        'category',
         'subject',
         'body',
         'created_by',

@@ -13,7 +13,6 @@ class KycRpmController extends Controller
         if ($lead->status !== 'Paid Client') {
             abort(404, 'KYC/RPM is only available for Paid Clients.');
         }
-
         $user = auth()->user();
         $isAuthorized = false;
 

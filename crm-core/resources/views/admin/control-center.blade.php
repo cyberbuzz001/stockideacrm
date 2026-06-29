@@ -383,31 +383,92 @@
                     </div>
 
                     <!-- WhatsApp Business -->
-                    <div class="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div class="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-100" x-data="{ provider: '{{ $settings['whatsapp_provider'] ?? 'none' }}' }">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg></div>
                             <span class="text-xs font-black text-slate-700 uppercase tracking-wider">WhatsApp Biz</span>
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Provider</label>
-                            <select onchange="saveSetting('whatsapp_provider', this.value)" class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5">
-                                <option value="none" {{ ($settings['whatsapp_provider'] ?? 'none') === 'none' ? 'selected' : '' }}>None</option>
-                                <option value="meta" {{ ($settings['whatsapp_provider'] ?? '') === 'meta' ? 'selected' : '' }}>Meta (Cloud API)</option>
-                                <option value="wati" {{ ($settings['whatsapp_provider'] ?? '') === 'wati' ? 'selected' : '' }}>WATI</option>
-                                <option value="interakt" {{ ($settings['whatsapp_provider'] ?? '') === 'interakt' ? 'selected' : '' }}>Interakt</option>
+                            <select @change="provider = $el.value; saveSetting('whatsapp_provider', $el.value)" class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5">
+                                <option value="none" :selected="provider === 'none'">None</option>
+                                <option value="meta" :selected="provider === 'meta'">Meta (Cloud API)</option>
+                                <option value="evolution" :selected="provider === 'evolution'">Evolution API (Docker)</option>
+                                <option value="wati" :selected="provider === 'wati'">WATI</option>
+                                <option value="interakt" :selected="provider === 'interakt'">Interakt</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Permanent Token</label>
+                        <div x-show="provider !== 'none'">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                                <span x-text="provider === 'evolution' ? 'API Key (apikey)' : 'Permanent Token'">Permanent Token</span>
+                            </label>
                             <input type="password" value="{{ $settings['whatsapp_api_key'] ?? '' }}" 
                                    class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5"
                                    onchange="saveSetting('whatsapp_api_key', this.value)">
                         </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Phone Number ID</label>
-                            <input type="text" value="{{ $settings['whatsapp_api_phone_id'] ?? '' }}" 
-                                   class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5"
-                                   onchange="saveSetting('whatsapp_api_phone_id', this.value)">
+                        
+                        <template x-if="provider === 'meta'">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Phone Number ID</label>
+                                    <input type="text" value="{{ $settings['whatsapp_api_phone_id'] ?? '' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_api_phone_id', this.value)">
+                                </div>
+                                
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">WABA ID</label>
+                                    <input type="text" value="{{ $settings['whatsapp_business_account_id'] ?? '' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_business_account_id', this.value)">
+                                </div>
+                                
+                                <div class="pt-2">
+                                    <button type="button" onclick="syncMetaTemplates(this)" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition shadow flex justify-center items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        Sync Meta Templates
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <template x-if="provider === 'evolution'">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Evolution API Base URL</label>
+                                    <input type="text" value="{{ $settings['whatsapp_evolution_url'] ?? 'http://localhost:8080' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_evolution_url', this.value)">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Instance Name</label>
+                                    <input type="text" value="{{ $settings['whatsapp_evolution_instance'] ?? 'shreesvarn' }}" 
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                           onchange="saveSetting('whatsapp_evolution_instance', this.value)">
+                                </div>
+                                <div class="pt-2">
+                                    <button type="button" onclick="loadWhatsAppQRCode()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition shadow flex justify-center items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                        Get QR Code
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div id="qrCodeContainer" class="mt-4 flex flex-col items-center justify-center hidden">
+                                    <div class="p-3 bg-white border border-slate-200 rounded-2xl shadow-inner">
+                                        <img id="qrCodeImage" src="" alt="WhatsApp QR Code" class="w-48 h-48">
+                                    </div>
+                                    <p class="text-[10px] text-slate-500 mt-2 font-medium text-center">Scan this code using WhatsApp > Linked Devices to connect the CRM.</p>
+                                </div>
+                                <div id="qrCodeLoading" class="hidden mt-4 text-xs text-center text-slate-500 font-bold animate-pulse">
+                                    Generating QR code...
+                                </div>
+                                <div id="qrCodeStatus" class="hidden mt-4 text-xs text-center text-emerald-600 font-bold">
+                                </div>
+                                <div id="qrCodeError" class="hidden mt-4 text-xs text-center text-rose-500 font-bold">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -693,6 +754,40 @@
                 }
             })
             .catch(e => showSettingsToast('Error connecting to server', true));
+        }
+
+        function loadWhatsAppQRCode() {
+            const container = document.getElementById('qrCodeContainer');
+            const img = document.getElementById('qrCodeImage');
+            const loading = document.getElementById('qrCodeLoading');
+            const status = document.getElementById('qrCodeStatus');
+            const error = document.getElementById('qrCodeError');
+
+            container.classList.add('hidden');
+            status.classList.add('hidden');
+            error.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            fetch('{{ route("admin.whatsapp.qrcode") }}')
+            .then(r => r.json())
+            .then(data => {
+                loading.classList.add('hidden');
+                if (data.status === 'connected') {
+                    status.textContent = data.message;
+                    status.classList.remove('hidden');
+                } else if (data.status === 'qrcode') {
+                    img.src = data.qrcode;
+                    container.classList.remove('hidden');
+                } else if (data.error) {
+                    error.textContent = data.error;
+                    error.classList.remove('hidden');
+                }
+            })
+            .catch(e => {
+                loading.classList.add('hidden');
+                error.textContent = 'Failed to fetch QR code from server.';
+                error.classList.remove('hidden');
+            });
         }
     </script>
 </x-app-layout>

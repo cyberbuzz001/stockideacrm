@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  api:
+    container_name: evolution_api
+    image: evoapicloud/evolution-api:latest
+    restart: always
+    depends_on:
+      - redis
+      - postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-net
+    env_file:
+      - .env
+
+  redis:
+    image: redis:7-alpine
+    container_name: evolution_redis
+    restart: always
+    networks:
+      - evolution-net
+    volumes:
+      - evolution_redis:/data
+
+  postgres:
+    container_name: evolution_postgres
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=evolution
+      - POSTGRES_PASSWORD=shreesvarn_postgres_secret
+      - POSTGRES_DB=evolution
+    networks:
+      - evolution-net
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  evolution_instances:
+  evolution_redis:
+  evolution_postgres_data:
+
+networks:
+  evolution-net:
+    driver: bridge

@@ -35,6 +35,8 @@ class AdminControlController extends Controller
         'whatsapp_provider',
         'whatsapp_api_key',
         'whatsapp_api_phone_id',
+        'whatsapp_evolution_url',
+        'whatsapp_evolution_instance',
         'ai_provider',
         'ai_api_key',
     ];
@@ -187,4 +189,69 @@ class AdminControlController extends Controller
 
         return $value;
     }
+
+    public function getWhatsAppQRCode()
+    {
+        if (!auth()->user()->hasPermission('system', 'control_center')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $urlBase = SystemSetting::get('whatsapp_evolution_url', 'http://localhost:8080');
+        $instance = SystemSetting::get('whatsapp_evolution_instance', 'shreesvarn');
+        $token = SystemSetting::get('whatsapp_api_key');
+
+        if (!$token || !$instance) {
+            return response()->json(['error' => 'Evolution API key or Instance name is missing in settings.'], 400);
+        }
+
+        $url = rtrim($urlBase, '/') . "/instance/connect/{$instance}";
+
+        $qrCode = null;
+        $state = null;
+        $lastError = null;
+        $statusCode = 500;
+        $attempts = 3;
+
+        for ($i = 0; $i < $attempts; $i++) {
+            try {
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'apikey' => $token
+                ])->timeout(15)->get($url);
+
+                $statusCode = $response->status();
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $state = $data['instance']['state'] ?? null;
+                    $qrCode = $data['hash']['qrcode'] ?? null;
+
+                    if ($state === 'open' || $qrCode) {
+                        break;
+                    }
+
+                    $lastError = 'Evolution API session is initializing. Please wait a moment and try again.';
+                } else {
+                    $lastError = 'Evolution API Error: ' . ($response->json('message') ?? $response->body());
+                }
+            } catch (\Exception $e) {
+                $lastError = 'Failed to connect to Evolution API: ' . $e->getMessage();
+                $statusCode = 500;
+            }
+
+            if ($i < $attempts - 1) {
+                sleep(2); // Wait 2 seconds before retrying
+            }
+        }
+
+        if ($state === 'open') {
+            return response()->json(['status' => 'connected', 'message' => 'WhatsApp is already connected!']);
+        }
+
+        if ($qrCode) {
+            return response()->json(['status' => 'qrcode', 'qrcode' => $qrCode]);
+        }
+
+        return response()->json(['error' => $lastError ?: 'Failed to retrieve QR code from Evolution API.'], $statusCode);
+    }
 }
+

@@ -81,6 +81,11 @@ Route::middleware('auth')->group(function () {
         Route::post('leads/auto-distribute', [LeadController::class, 'autoDistribute'])->name('leads.auto-distribute');
         
         Route::resource('leads', LeadController::class);
+
+        // Chat Window Endpoints
+        Route::get('leads/{lead}/chat-history', [LeadController::class, 'getChatHistory'])->name('leads.chat-history');
+        Route::post('leads/{lead}/chat-send', [LeadController::class, 'sendChatMessage'])->name('leads.chat-send');
+        Route::post('leads/{lead}/chat-send-template', [LeadController::class, 'sendChatTemplate'])->name('leads.chat-send-template');
     });
 
     Route::post('leads/{lead}/start-call', [LeadController::class, 'startCall'])->name('leads.start-call');
@@ -88,6 +93,7 @@ Route::middleware('auth')->group(function () {
     Route::post('leads/{lead}/notes', [LeadController::class, 'saveNotes'])->name('leads.notes');
     Route::post('leads/{lead}/messages', [LeadController::class, 'storeMessage'])->name('leads.messages');
     Route::post('leads/{lead}/send-whatsapp', [LeadController::class, 'sendWhatsApp'])->name('leads.send-whatsapp');
+    Route::post('leads/{lead}/ai-draft', [LeadController::class, 'aiDraftMessage'])->name('leads.ai-draft');
     Route::post('leads/{lead}/update-rich-details', [LeadController::class, 'updateRichDetails'])->name('leads.update-rich-details');
     Route::post('leads/{lead}/quick-log', [LeadController::class, 'quickLog'])->name('leads.quick-log');
     Route::post('leads/{lead}/log-comm', [LeadController::class, 'logComm'])->name('leads.log-comm');
@@ -166,6 +172,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/admin/control-center/branding', [\App\Http\Controllers\AdminControlController::class, 'updateBranding'])->name('admin.settings.branding');
         Route::post('/admin/control-center/attendance-override', [\App\Http\Controllers\AdminControlController::class, 'overrideAttendance'])->name('admin.attendance.override');
         Route::post('/admin/control-center/ticker', [\App\Http\Controllers\AdminControlController::class, 'updateTicker'])->name('admin.ticker.update');
+        Route::get('/admin/whatsapp/qrcode', [\App\Http\Controllers\AdminControlController::class, 'getWhatsAppQRCode'])->name('admin.whatsapp.qrcode');
 
         // Learning & Training Module (Admin)
         Route::get('/admin/training', [\App\Http\Controllers\AdminTrainingController::class, 'index'])->name('admin.training.index');
@@ -174,6 +181,7 @@ Route::middleware('auth')->group(function () {
 
         // Message Templates
         Route::resource('message-templates', \App\Http\Controllers\MessageTemplateController::class);
+        Route::post('message-templates/sync-meta', [\App\Http\Controllers\MessageTemplateController::class, 'syncMetaTemplates'])->name('message-templates.sync-meta');
 
         // Role & Permissions Matrix
         Route::get('/admin/roles/matrix', [\App\Http\Controllers\RolePermissionController::class, 'index'])->name('admin.roles.matrix');
@@ -185,7 +193,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('message-templates-list', [MessageTemplateController::class, 'list'])->name('message-templates.list');
 
-    // KYC / RPM Compliance — All Employees
+    // KYC / RPM Compliance ??? All Employees
     Route::get('/kyc-rpm', [KycRpmController::class, 'index'])->name('kyc-rpm.index');
     Route::post('/kyc-rpm/{lead}/update-data', [KycRpmController::class, 'updateData'])->name('kyc-rpm.update-data');
     Route::get('/leads/{lead}/kyc-rpm', [KycRpmController::class, 'show'])->name('kyc-rpm.show');
@@ -207,3 +215,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__ . '/auth.php';
+

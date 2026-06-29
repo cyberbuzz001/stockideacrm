@@ -15,6 +15,7 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Event::subscribe(\App\Listeners\LogSystemActivity::class);
 
         try {
+            // Register Dynamic Permissions Matrix Gates
             $matrix = json_decode(\App\Models\SystemSetting::get('role_access_matrix', '{}'), true);
             if ($matrix) {
                 foreach ($matrix as $module => $actions) {
@@ -26,10 +27,11 @@ class AppServiceProvider extends ServiceProvider
                 }
             }
 
+            // Share Company Branding Globally
             \Illuminate\Support\Facades\View::share('company_name', \App\Models\SystemSetting::get('company_name', 'StockIdea'));
             \Illuminate\Support\Facades\View::share('company_logo', \App\Models\SystemSetting::get('company_logo'));
         } catch (\Exception $e) {
-            // Silence exceptions during initial migrations
+            // Silence exceptions during initial migrations when tables don't exist yet
         }
     }
 }
