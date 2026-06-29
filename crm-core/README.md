@@ -1,59 +1,84 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Shreesvarn Enterprise AI-Powered CRM
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+An advanced, high-performance Customer Relationship Management (CRM) system designed for premium advisory services, stock brokerage teams, and high-velocity sales organizations. This CRM blends state-of-the-art aesthetics with robust Laravel backend architectures, real-time communication modules, and AI intelligence to automate client engagement, lead management, and team productivity.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🌟 Key Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### 1. Role-Based Bento Command Centers
+*   **Admin Dashboard:** Command center featuring live salesperson leaderboards (Today & MTD), real-time revenue trajectory charts (ApexCharts), system health indicators, MTD payments overview, and live system audit logs.
+*   **Manager Dashboard:** Unified team management, target assignment, lead allocation metrics, and group performance tracking.
+*   **SBA / BA Dashboards:** Agent-centric dashboards showing individual monthly revenue progress bars, urgent follow-up calendars, call queues, and conversion statistics.
+*   **Sales Mastery Tips:** Dynamic rotating tips widget loaded from `sales_mastery.json` to keep agents motivated and trained directly on their dashboard.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 2. Intelligent Lead Management & Allocation
+*   **AI Lead Scoring:** Custom machine learning-driven lead scoring command (`php artisan crm:train-lead-scoring`) that analyzes past engagement and historical conversion patterns to predict high-intent prospects.
+*   **Auto-Distribution Engine:** Algorithmic lead routing that automatically and fairly distributes incoming leads to online, active sales agents.
+*   **Reallocation Tool:** Dynamic manager tool to transfer ownership of single/multiple leads from one salesperson/agent to another with audit trailing.
+*   **Bulk & Text Imports:** High-velocity CSV/Excel imports alongside a convenient raw copy-paste bulk text import utility.
 
-## Learning Laravel
+### 3. Integrated WhatsApp & Communications Center
+*   **Live Chat Tab:** A real-time WhatsApp-style chat interface integrated directly within the Lead details screen.
+*   **Meta Cloud API Integration:** Send templates, templates with dynamic parameters, and media directly through the Meta Cloud API.
+*   **AI Smart Draft:** Instantly write context-aware replies, reminders, or follow-ups using the embedded AI language generation assistant.
+*   **Sentiment & Urgency Classifier:** Automatic categorization of client messages into positive/negative/neutral sentiment and low/medium/high urgency.
+*   **Manual Fallback:** Quick-actions to open deep-linked WhatsApp Web messages (`wa.me`) if the API channel is offline.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 4. Compliance & Document Security
+*   **Mandatory Training Middleware:** Restricts access to leads or CRM tools until an employee marks their regulatory/operational compliance training as complete.
+*   **Consent Management:** Explicit opt-in and opt-out tracking for client communications.
+*   **Secure Document Vault:** Dynamic token-based download security for client identity proofs, KYC forms, and income records.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🛠️ Technology Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Backend Core** | PHP 8.2+ / Laravel 11 | Enterprise MVC framework handling REST endpoints, DB queries, queues, and CLI commands. |
+| **Database** | MySQL 8.0+ | Relational schema with indexing for fast lead filtering, activity logging, and payment tracking. |
+| **Real-time Server** | Node.js / Express | Standalone chat microservice located in `/chat-server` for webhook processing. |
+| **Process Manager** | PM2 | Manages Node.js servers in production (`ecosystem.config.js`). |
+| **Frontend UI** | Tailwind CSS / Alpine.js | Modern responsive interface implementing premium glassmorphism card designs, dark mode utilities, and live interactive state binding. |
+| **Data Viz** | ApexCharts | Interactive vector graphs for tracking sales dynamics, conversions, and target metrics. |
+| **API Dispatches** | Guzzle HTTP / Meta API | Meta Cloud API wrapper for real-time WhatsApp template delivery. |
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 💼 Core Use Cases
 
-## Contributing
+### 1. Stock Advisory & Investment Firms
+*   **Direct-to-Agent Lead Capture:** Capture inbound leads from Facebook Ads/landing pages, route them instantly via the Auto-Distribution engine, score them using AI, and initiate direct WhatsApp contact in under 60 seconds.
+*   **Live Sales Leaderboards:** Gamify the sales floor with live-updating daily and monthly leaderboards showing client payment collections.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 2. High-Value B2C Sales Teams
+*   **Callback Calendar Management:** Keep agents focused on hot prospects with automatic dashboard notifications for scheduled call-backs.
+*   **Interactive Disposition Logs:** Log manual call details, outcome categories, and next-action dates with two clicks.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 🔧 Extensibility & Customization
 
-## Security Vulnerabilities
+The CRM's modular structure allows for seamless integrations and further development:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 1. Telephony / VoIP Integrations
+*   **Click-to-Call:** Integrate APIs from Twilio, Exotel, or RingCentral to enable one-click outbound calling directly from the browser.
+*   **Call Recording Loggers:** Bind call recordings to the Lead's activity timeline.
 
-## License
+### 2. Advanced AI Capabilities
+*   **Auto-Pilot Chatbot:** Deploy automated AlpineJS qualification flows into real Meta Webhooks to answer common queries (e.g. pricing, brochure requests) before passing the lead to a human agent.
+*   **Predictive Churn Engine:** Build machine learning models to highlight leads that are highly likely to request refunds or discontinue services.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 3. Payment Gateway Syncing
+*   **Real-time Invoicing:** Integrate Razorpay, Stripe, or Cashfree webhooks to automatically log payments and close open client balances.
+*   **Auto-Renewals Tracker:** Alert agents when subscription plans are nearing their end dates.
+
+---
+
+## 🚀 Installation & Deployment
+
+Refer to the production-ready script and configuration files in the `/deployment` folder:
+*   [deploy_vps.sh](file:///D:/2026%20C%20downloads/expertcrmv1/public_html/deployment/deploy_vps.sh) - Automatic deployment script.
+*   [docker-compose.yml](file:///D:/2026%20C%20downloads/expertcrmv1/public_html/deployment/docker-compose.yml) - Docker configuration containerizing PHP, Nginx, Node.js, and Redis.
+*   [.env.evolution](file:///D:/2026%20C%20downloads/expertcrmv1/public_html/deployment/.env.evolution) - Reference configuration containing all environment variables including Meta Cloud credentials.
