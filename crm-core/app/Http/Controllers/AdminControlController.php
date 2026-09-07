@@ -37,6 +37,8 @@ class AdminControlController extends Controller
         'whatsapp_api_phone_id',
         'whatsapp_evolution_url',
         'whatsapp_evolution_instance',
+        'whatsapp_webhook_verify_token',
+        'whatsapp_meta_app_secret',
         'ai_provider',
         'ai_api_key',
     ];
