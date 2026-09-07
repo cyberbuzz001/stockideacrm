@@ -21,7 +21,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role', // 'Admin', 'Manager', 'SBA', 'BA'
         'parent_id', // Reporting Manager
         'commission_rate',
         'lead_weight',
@@ -30,6 +29,15 @@ class User extends Authenticatable
         'last_login_ip',
         'whatsapp_phone_id',
     ];
+
+    /**
+     * 'role' ('Admin', 'Manager', 'SBA', 'BA') is deliberately excluded from
+     * $fillable so it can never be set via mass assignment (create()/update()
+     * with a raw array) — only via explicit `$user->role = ...` after
+     * validating against a whitelist, as EmployeeController does. This
+     * prevents any future `User::create($request->all())`-style call
+     * elsewhere from allowing self-elevation to Admin.
+     */
 
     protected $hidden = [
         'password',
