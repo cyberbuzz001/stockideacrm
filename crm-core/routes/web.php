@@ -26,18 +26,6 @@ Route::get('/', function () {
     ]);
 });
 
-// Temporary Route to install Database on Shared Hosting (Hostinger)
-if (config('app.env') !== 'production') {
-    Route::get('/setup-db-force', function () {
-        try {
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            return 'Database Migrated Successfully! <a href="/">Go Home</a>';
-        } catch (\Exception $e) {
-            return 'Error: ' . $e->getMessage();
-        }
-    });
-}
-
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
