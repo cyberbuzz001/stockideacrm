@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Shreesvarn CRM - Production Deployment Script (v1.1)
 # Optimized for: AlmaLinux 9.7 + CyberPanel (OpenLiteSpeed)
