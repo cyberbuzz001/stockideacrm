@@ -2,6 +2,9 @@
 crm-core/vendor/
 crm-core/.env
 crm-core/.env.*
+
+# Evolution API deployment secrets
+deployment/.env.evolution
 crm-core/storage/*.key
 crm-core/storage/framework/cache/data/*
 crm-core/storage/framework/sessions/*
