@@ -36,7 +36,7 @@ An advanced, high-performance Customer Relationship Management (CRM) system desi
 
 | Component | Technology | Description |
 | :--- | :--- | :--- |
-| **Backend Core** | PHP 8.2+ / Laravel 11 | Enterprise MVC framework handling REST endpoints, DB queries, queues, and CLI commands. |
+| **Backend Core** | PHP 8.2+ / Laravel 12 | Enterprise MVC framework handling REST endpoints, DB queries, queues, and CLI commands. |
 | **Database** | MySQL 8.0+ | Relational schema with indexing for fast lead filtering, activity logging, and payment tracking. |
 | **Real-time Server** | Node.js / Express | Standalone chat microservice located in `/chat-server` for webhook processing. |
 | **Process Manager** | PM2 | Manages Node.js servers in production (`ecosystem.config.js`). |
