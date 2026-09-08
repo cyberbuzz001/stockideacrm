@@ -17,8 +17,14 @@ return new class extends Migration
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
 
-        // Backfill user_id based on the lead's assigned_to
-        DB::statement('UPDATE payments INNER JOIN leads ON payments.lead_id = leads.id SET payments.user_id = leads.assigned_to');
+        // Backfill user_id based on the lead's assigned_to. Written as a
+        // portable subquery UPDATE (not `UPDATE ... INNER JOIN ... SET`,
+        // which is MySQL-only and breaks under the sqlite driver the test
+        // suite uses) so it runs the same way on both.
+        DB::statement(
+            'UPDATE payments SET user_id = (SELECT assigned_to FROM leads WHERE leads.id = payments.lead_id) '
+            . 'WHERE EXISTS (SELECT 1 FROM leads WHERE leads.id = payments.lead_id)'
+        );
     }
 
     /**
