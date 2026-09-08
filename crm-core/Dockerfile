@@ -1,13 +1,23 @@
 # Production Dockerfile for Laravel CRM
 
 # ---- Stage 1: PHP dependencies (composer install; discarded after this stage) ----
-FROM composer:2 AS vendor
+# Base this on php:8.2-cli (matching the runtime stage's php:8.2-fpm) rather
+# than the composer:2 image, which bundles its own PHP (8.5 at time of
+# writing). Resolving against a newer PHP than the actual runtime lets
+# composer pick versions that satisfy composer.json's "php": "^8.2" on paper
+# but require a newer PHP in practice — confirmed this the hard way: an
+# earlier version of this stage picked a Symfony 8.x transitive dependency
+# requiring PHP >=8.4.1, which then fatal-errored on boot in the php:8.2-fpm
+# runtime stage.
+FROM php:8.2-cli AS vendor
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+RUN apt-get update && apt-get install -y --no-install-recommends unzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 WORKDIR /var/www
 COPY . .
-# The composer:2 image doesn't ship ext-gd, so composer's platform check on
-# setasign/fpdf (which requires it) fails here even though the runtime stage
-# below genuinely installs gd via docker-php-ext-install. Safe to ignore only
-# because that's guaranteed.
+# ext-gd isn't installed in this slim resolution-only stage, but the runtime
+# stage below genuinely installs it via docker-php-ext-install — safe to
+# ignore only because that's guaranteed.
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-req=ext-gd
 
 # ---- Stage 2: frontend build (node/npm; discarded after this stage) ----
