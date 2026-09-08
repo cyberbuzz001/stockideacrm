@@ -1,0 +1,47 @@
+name: crm-core tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "crm-core/**"
+      - ".github/workflows/crm-core-tests.yml"
+  pull_request:
+    paths:
+      - "crm-core/**"
+      - ".github/workflows/crm-core-tests.yml"
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crm-core
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, dom, fileinfo, pdo_sqlite, sqlite3, gd, bcmath, exif, zip, pcntl
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: crm-core/vendor
+          key: composer-${{ hashFiles('crm-core/composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run test suite
+        run: php artisan test
