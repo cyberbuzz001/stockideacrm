@@ -20,9 +20,14 @@ class WhatsAppWebhookController extends Controller
         $token = $request->query('hub_verify_token');
         $challenge = $request->query('hub_challenge');
 
-        $verifyToken = SystemSetting::get('whatsapp_webhook_verify_token', 'shreesvarn_token');
+        $verifyToken = SystemSetting::get('whatsapp_webhook_verify_token');
 
-        if ($mode === 'subscribe' && $token === $verifyToken) {
+        if (!$verifyToken) {
+            Log::warning('WhatsApp webhook verify rejected: whatsapp_webhook_verify_token is not configured.');
+            return response('Forbidden', 403);
+        }
+
+        if ($mode === 'subscribe' && hash_equals($verifyToken, (string) $token)) {
             return response($challenge, 200);
         }
 
@@ -30,16 +35,21 @@ class WhatsAppWebhookController extends Controller
     }
 
     /**
-     * Handle incoming messages from Meta Cloud API.
+     * Handle incoming messages from Meta Cloud API or Evolution API.
      */
     public function handle(Request $request)
     {
         $payload = $request->all();
-        
+
         Log::info('WhatsApp Webhook Incoming', $payload);
 
         // Detect Evolution API webhook format
         if (isset($payload['event']) && isset($payload['data'])) {
+            if (!$this->verifyEvolutionRequest($request, $payload)) {
+                Log::warning('WhatsApp webhook rejected: invalid or missing Evolution API key.');
+                return response('Forbidden', 403);
+            }
+
             $event = strtolower($payload['event']);
             if ($event !== 'messages.upsert' && $event !== 'messages_upsert') {
                 return response('OK');
@@ -87,6 +97,11 @@ class WhatsAppWebhookController extends Controller
         }
 
         // Fallback to Meta Cloud API webhook format
+        if (!$this->verifyMetaSignature($request)) {
+            Log::warning('WhatsApp webhook rejected: invalid or missing Meta X-Hub-Signature-256.');
+            return response('Forbidden', 403);
+        }
+
         $entry = $payload['entry'][0] ?? null;
         if (!$entry) return response('OK');
 
@@ -133,6 +148,46 @@ class WhatsAppWebhookController extends Controller
         }
 
         return response('OK');
+    }
+
+    /**
+     * Evolution API includes the instance token as `apikey` in the webhook
+     * payload body (and optionally as an `apikey` header). Verify it against
+     * the same key configured for outbound sends (whatsapp_api_key) before
+     * trusting anything in the payload.
+     */
+    private function verifyEvolutionRequest(Request $request, array $payload): bool
+    {
+        $expected = SystemSetting::get('whatsapp_api_key');
+        if (!$expected) {
+            return false;
+        }
+
+        $provided = $payload['apikey'] ?? $request->header('apikey');
+
+        return is_string($provided) && hash_equals($expected, $provided);
+    }
+
+    /**
+     * Meta signs every webhook POST body with HMAC-SHA256 using the app
+     * secret, sent as `X-Hub-Signature-256: sha256=<hex>`.
+     * https://developers.facebook.com/docs/graph-api/webhooks/getting-started#validate-payloads
+     */
+    private function verifyMetaSignature(Request $request): bool
+    {
+        $appSecret = SystemSetting::get('whatsapp_meta_app_secret');
+        if (!$appSecret) {
+            return false;
+        }
+
+        $signatureHeader = (string) $request->header('X-Hub-Signature-256', '');
+        if (!str_starts_with($signatureHeader, 'sha256=')) {
+            return false;
+        }
+
+        $expected = 'sha256=' . hash_hmac('sha256', $request->getContent(), $appSecret);
+
+        return hash_equals($expected, $signatureHeader);
     }
 
     private function findLeadByNumber($number)

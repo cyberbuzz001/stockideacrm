@@ -30,9 +30,10 @@ services:
     container_name: evolution_postgres
     image: postgres:15-alpine
     restart: always
+    env_file:
+      - .env.evolution
     environment:
       - POSTGRES_USER=evolution
-      - POSTGRES_PASSWORD=shreesvarn_postgres_secret
       - POSTGRES_DB=evolution
     networks:
       - evolution-net

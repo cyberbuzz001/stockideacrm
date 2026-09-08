@@ -418,11 +418,27 @@
                                 
                                 <div>
                                     <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">WABA ID</label>
-                                    <input type="text" value="{{ $settings['whatsapp_business_account_id'] ?? '' }}" 
-                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5" 
+                                    <input type="text" value="{{ $settings['whatsapp_business_account_id'] ?? '' }}"
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5"
                                            onchange="saveSetting('whatsapp_business_account_id', this.value)">
                                 </div>
-                                
+
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Webhook Verify Token</label>
+                                    <input type="password" value="{{ $settings['whatsapp_webhook_verify_token'] ?? '' }}"
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5"
+                                           onchange="saveSetting('whatsapp_webhook_verify_token', this.value)">
+                                    <p class="text-[9px] text-slate-400 mt-1">Must match the "Verify token" you enter in Meta's webhook setup screen.</p>
+                                </div>
+
+                                <div>
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">App Secret</label>
+                                    <input type="password" value="{{ $settings['whatsapp_meta_app_secret'] ?? '' }}"
+                                           class="w-full rounded-xl border-slate-200 text-xs font-bold focus:ring-emerald-500 py-1.5"
+                                           onchange="saveSetting('whatsapp_meta_app_secret', this.value)">
+                                    <p class="text-[9px] text-slate-400 mt-1">From your Meta App's Basic Settings. Required to verify incoming webhook signatures — messages are rejected without it.</p>
+                                </div>
+
                                 <div class="pt-2">
                                     <button type="button" onclick="syncMetaTemplates(this)" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-xl text-xs transition shadow flex justify-center items-center gap-2">
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>

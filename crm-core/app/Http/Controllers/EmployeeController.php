@@ -70,11 +70,14 @@ class EmployeeController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
             'parent_id' => $request->parent_id,
             'whatsapp_phone_id' => $request->whatsapp_phone_id,
             'is_active' => $request->has('is_active') ? true : true,
         ]);
+
+        // role is guarded (not mass-assignable) — set explicitly after validation above.
+        $user->role = $request->role;
+        $user->save();
 
         return redirect()->route('employees.index')->with('success', 'Employee added successfully!');
     }
@@ -110,7 +113,6 @@ class EmployeeController extends Controller
         $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
             'parent_id' => $request->parent_id,
             'whatsapp_phone_id' => $request->whatsapp_phone_id,
             'is_active' => $request->has('is_active') ? true : false,
@@ -121,6 +123,10 @@ class EmployeeController extends Controller
         }
 
         $employee->update($data);
+
+        // role is guarded (not mass-assignable) — set explicitly after validation above.
+        $employee->role = $request->role;
+        $employee->save();
 
         return redirect()->route('employees.index')->with('success', 'Employee updated successfully!');
     }
