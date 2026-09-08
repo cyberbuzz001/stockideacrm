@@ -31,7 +31,12 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\View::share('company_name', \App\Models\SystemSetting::get('company_name', 'StockIdea'));
             \Illuminate\Support\Facades\View::share('company_logo', \App\Models\SystemSetting::get('company_logo'));
         } catch (\Exception $e) {
-            // Silence exceptions during initial migrations when tables don't exist yet
+            // system_settings may not exist yet (initial migrations) or the
+            // DB may be briefly unavailable — fall back to safe defaults so
+            // every view using $company_name/$company_logo still resolves
+            // instead of throwing "Undefined variable".
+            \Illuminate\Support\Facades\View::share('company_name', 'StockIdea');
+            \Illuminate\Support\Facades\View::share('company_logo', null);
         }
     }
 }
