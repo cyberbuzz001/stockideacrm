@@ -28,6 +28,13 @@ jobs:
           extensions: mbstring, dom, fileinfo, pdo_sqlite, sqlite3, gd, bcmath, exif, zip, pcntl
           coverage: none
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: crm-core/package-lock.json
+
       - name: Cache Composer packages
         uses: actions/cache@v4
         with:
@@ -35,8 +42,13 @@ jobs:
           key: composer-${{ hashFiles('crm-core/composer.lock') }}
           restore-keys: composer-
 
-      - name: Install dependencies
+      - name: Install PHP dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Install and build frontend assets
+        run: |
+          npm ci
+          npm run build
 
       - name: Prepare environment
         run: |
