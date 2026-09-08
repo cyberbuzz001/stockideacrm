@@ -4,7 +4,11 @@
 FROM composer:2 AS vendor
 WORKDIR /var/www
 COPY . .
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# The composer:2 image doesn't ship ext-gd, so composer's platform check on
+# setasign/fpdf (which requires it) fails here even though the runtime stage
+# below genuinely installs gd via docker-php-ext-install. Safe to ignore only
+# because that's guaranteed.
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-req=ext-gd
 
 # ---- Stage 2: frontend build (node/npm; discarded after this stage) ----
 FROM node:20-bookworm-slim AS assets
